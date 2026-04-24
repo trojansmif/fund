@@ -16,7 +16,7 @@ type Team = {
   sectorLineup?: { label: string; name: string; role: string }[];
 };
 
-const US_EQUITY_SECTORS: { label: string; name: string; role: string }[] = [
+const EQUITY_SECTORS: { label: string; name: string; role: string }[] = [
   { label: "Energy", name: "Arnav Dudeja", role: "Co-Energy + Utilities Lead" },
   { label: "Energy", name: "Mridul Bhatla", role: "Co-Energy Lead" },
   { label: "Materials", name: "Hao-Chen (Howard) Shieh", role: "Materials + Real Estate Lead" },
@@ -24,35 +24,27 @@ const US_EQUITY_SECTORS: { label: string; name: string; role: string }[] = [
   { label: "Consumer Discretionary", name: "Alexander Chika-Nwanja", role: "Consumer Discretionary Lead" },
   { label: "Consumer Staples", name: "Mrudula Gurumani", role: "Consumer Staples Lead" },
   { label: "Health Care", name: "Dylan Martling", role: "Healthcare Lead" },
-  { label: "Financials", name: "Vivian Wei", role: "Financials + Commodities & Crypto Lead" },
+  { label: "Financials", name: "Vivian Wei", role: "Financials Lead" },
   { label: "Information Technology", name: "Mark Huber", role: "Technology Lead" },
   { label: "Communication Services", name: "Yanting (Christine) Zhao", role: "Communication Services Lead" },
   { label: "Utilities", name: "Arnav Dudeja", role: "Co-Energy + Utilities Lead" },
   { label: "Real Estate", name: "Hao-Chen (Howard) Shieh", role: "Materials + Real Estate Lead" },
+  { label: "International", name: "Shreya Thakkar", role: "International Equities Lead" },
 ];
 
 const TEAMS: Team[] = [
   {
     k: "01",
-    name: "US Equities",
+    name: "Equities",
     lead: "Director of US + International Equities",
-    blurb: "All 11 GICS sectors, covered bottom-up.",
+    blurb: "11 GICS sectors plus international coverage.",
     detail:
-      "Bottom-up fundamental research across all 11 GICS sectors — Energy, Materials, Industrials, Consumer Discretionary, Consumer Staples, Health Care, Financials, Information Technology, Communication Services, Utilities, Real Estate. Every idea is a written memo before it reaches the Investment Committee. Some leads double up on adjacent sectors: Arnav Dudeja owns both Energy (as Co-Lead alongside Mridul Bhatla) and Utilities; Hao-Chen (Howard) Shieh covers both Materials and Real Estate.",
-    match: () => false, // sectorLineup takes over for US Equities
-    sectorLineup: US_EQUITY_SECTORS,
+      "Bottom-up fundamental research across all 11 GICS sectors — Energy, Materials, Industrials, Consumer Discretionary, Consumer Staples, Health Care, Financials, Information Technology, Communication Services, Utilities, Real Estate — plus international coverage through ADRs and global ETFs with an FX overlay. Every idea is a written memo before it reaches the Investment Committee. Some leads double up on adjacent sectors: Arnav Dudeja owns both Energy (as Co-Lead alongside Mridul Bhatla) and Utilities; Hao-Chen (Howard) Shieh covers both Materials and Real Estate.",
+    match: () => false, // sectorLineup takes over for Equities
+    sectorLineup: EQUITY_SECTORS,
   },
   {
     k: "02",
-    name: "International Equities",
-    lead: "International Equities Lead",
-    blurb: "Developed + emerging market coverage with FX overlay.",
-    detail:
-      "Coverage of non-US developed and emerging markets through ADRs and international ETFs, with an FX overlay and macro-aware positioning coordinated with Economics Research.",
-    match: (m) => m.team === "International Equities",
-  },
-  {
-    k: "03",
     name: "Fixed Income",
     lead: "Co-Directors of Fixed Income",
     blurb: "IG credit, high yield, structured products, rates & sovereign debt.",
@@ -63,16 +55,18 @@ const TEAMS: Team[] = [
       (m.team === "Directors" && m.role.includes("Fixed Income")),
   },
   {
-    k: "04",
+    k: "03",
     name: "Alternative Investments",
     lead: "Director of Alternative Investments",
     blurb: "Commodities, real assets, and hedge-fund-style exposures.",
     detail:
       "Gold, commodities, and real-asset sleeves plus liquid alternatives. Scope kept narrow by policy (5% max alternatives) — focus is on risk-off hedges and real-rate convexity.",
-    match: (m) => m.team === "Directors" && m.role.includes("Alternative Investments"),
+    match: (m) =>
+      m.team === "Alternative Investments" ||
+      (m.team === "Directors" && m.role.includes("Alternative Investments")),
   },
   {
-    k: "05",
+    k: "04",
     name: "Quantitative Strategies",
     lead: "Director of Quantitative Strategies",
     blurb: "Factor modeling and portfolio analytics.",
@@ -83,7 +77,7 @@ const TEAMS: Team[] = [
       (m.team === "Directors" && m.role.includes("Quantitative Strategies")),
   },
   {
-    k: "06",
+    k: "05",
     name: "Economics Research",
     lead: "Chief Economist + Director of Economics Research",
     blurb: "Global macro, econometric forecasting, thematic outlook.",
@@ -95,7 +89,7 @@ const TEAMS: Team[] = [
       (m.team === "Executive Committee" && m.role.includes("Chief Economist")),
   },
   {
-    k: "07",
+    k: "06",
     name: "Risk Management",
     lead: "Chief Risk Officer + Director of Risk Management",
     blurb: "Limits monitoring, stress testing, compliance, reporting.",
@@ -107,7 +101,7 @@ const TEAMS: Team[] = [
       (m.team === "Executive Committee" && m.role.includes("Chief Risk")),
   },
   {
-    k: "08",
+    k: "07",
     name: "Operations & Technology",
     lead: "COO + CTO",
     blurb: "Budgeting, recruiting, data infrastructure, tooling.",
@@ -134,7 +128,7 @@ export default function TeamsPage() {
             Teams
           </div>
           <h1 className="mt-4 font-[family-name:var(--font-display)] text-[clamp(2rem,6vw,3.75rem)] leading-[1.1] font-medium">
-            Eight teams.<br />One Investment Committee.
+            Seven teams.<br />One Investment Committee.
           </h1>
           <p className="mt-8 max-w-2xl text-lg text-[var(--color-muted)] leading-relaxed">
             Tap any team to see its members and what they own. Every team is
