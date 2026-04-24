@@ -1,8 +1,33 @@
 "use client";
 
-import { useState } from "react";
-import { initials, type RosterEntry } from "@/lib/roster";
-import { LinkedInIcon, linkedInSearchUrl } from "@/components/linkedin-icon";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { findByName, initials, type RosterEntry } from "@/lib/roster";
+import { LinkedInChip } from "@/components/linkedin-icon";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+
+type MemberMeta = { avatar: string | null; username: string };
+
+// Shared cross-accordion cache so every TeamAccordion only fetches once.
+let _memberCache: Map<string, MemberMeta> | null = null;
+async function fetchMemberMetaMap(): Promise<Map<string, MemberMeta>> {
+  if (_memberCache) return _memberCache;
+  const sb = getSupabaseBrowser();
+  if (!sb) return new Map();
+  const { data } = await sb
+    .from("members")
+    .select("full_name, username, avatar_path");
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, "");
+  const map = new Map<string, MemberMeta>();
+  (data || []).forEach((r: { full_name: string; username: string; avatar_path: string | null }) => {
+    map.set(r.full_name, {
+      avatar: r.avatar_path && base ? `${base}/storage/v1/object/public/avatars/${r.avatar_path}` : null,
+      username: r.username,
+    });
+  });
+  _memberCache = map;
+  return map;
+}
 
 export function TeamAccordion({
   k,
@@ -24,6 +49,11 @@ export function TeamAccordion({
   const count = sectorLineup ? sectorLineup.length : members.length;
   const countLabel = sectorLineup ? `${count} sectors` : `${count} member${count === 1 ? "" : "s"}`;
   const [open, setOpen] = useState(false);
+  const [memberMeta, setMemberMeta] = useState<Map<string, MemberMeta>>(new Map());
+
+  useEffect(() => {
+    fetchMemberMetaMap().then(setMemberMeta);
+  }, []);
 
   return (
     <article
@@ -83,59 +113,76 @@ export function TeamAccordion({
 
               {sectorLineup ? (
                 <ul className="divide-y hairline border hairline bg-[var(--color-paper)]">
-                  {sectorLineup.map((s, i) => (
-                    <li key={`${s.label}-${i}`} className="px-3 md:px-4 py-3 grid grid-cols-12 gap-3 items-center">
-                      <div className="col-span-5 sm:col-span-4">
-                        <div className="font-mono text-[10px] uppercase text-[var(--color-muted)]">Sector</div>
-                        <div className="mt-0.5 text-[13px] md:text-sm">{s.label}</div>
-                      </div>
-                      <div className="col-span-5 sm:col-span-7 flex items-center gap-3 min-w-0">
-                        <span className="h-8 w-8 shrink-0 bg-[var(--color-cardinal)] text-[var(--color-paper)] flex items-center justify-center font-[family-name:var(--font-display)] text-[11px]">
-                          {initials(s.name)}
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-[13px] md:text-sm truncate">{s.name}</span>
-                          <span className="block text-[11px] text-[var(--color-muted)] truncate">{s.role}</span>
-                        </span>
-                      </div>
-                      <div className="col-span-2 sm:col-span-1 flex justify-end">
-                        <a
-                          href={linkedInSearchUrl(s.name)}
-                          target="_blank"
-                          rel="noreferrer"
-                          aria-label={`${s.name} on LinkedIn`}
-                          className="inline-flex items-center justify-center w-7 h-7 border hairline text-[var(--color-muted)] hover:bg-[var(--color-cardinal)] hover:border-[var(--color-cardinal)] hover:text-[var(--color-paper)] transition-colors shrink-0"
-                        >
-                          <LinkedInIcon className="w-3 h-3" />
-                        </a>
-                      </div>
-                    </li>
-                  ))}
+                  {sectorLineup.map((s, i) => {
+                    const meta = memberMeta.get(s.name);
+                    return (
+                      <li key={`${s.label}-${i}`} className="px-3 md:px-4 py-3 grid grid-cols-12 gap-3 items-center">
+                        <div className="col-span-5 sm:col-span-3">
+                          <div className="font-mono text-[10px] uppercase text-[var(--color-muted)]">Sector</div>
+                          <div className="mt-0.5 text-[13px] md:text-sm">{s.label}</div>
+                        </div>
+                        <div className="col-span-7 sm:col-span-6 flex items-center gap-3 min-w-0">
+                          <MemberAvatar name={s.name} avatarUrl={meta?.avatar ?? null} />
+                          <span className="min-w-0 flex-1">
+                            {meta?.username ? (
+                              <Link href={`/m/${meta.username}`} className="block text-[13px] md:text-sm truncate hover:text-[var(--color-cardinal)]">
+                                {s.name}
+                              </Link>
+                            ) : (
+                              <span className="block text-[13px] md:text-sm truncate">{s.name}</span>
+                            )}
+                            <span className="block text-[11px] text-[var(--color-muted)] truncate">{s.role}</span>
+                          </span>
+                        </div>
+                        <div className="col-span-12 sm:col-span-3 flex items-center justify-end gap-2">
+                          {meta?.username && (
+                            <Link
+                              href={`/m/${meta.username}`}
+                              className="text-[10px] font-mono uppercase tracking-wider text-[var(--color-cardinal)] border-b border-[var(--color-cardinal)] pb-0.5"
+                            >
+                              View profile
+                            </Link>
+                          )}
+                          <LinkedInChip
+                            linkedin={findByName(s.name)?.linkedin}
+                            name={s.name}
+                          />
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : members.length === 0 ? (
                 <div className="text-sm text-[var(--color-muted)]">No members assigned yet.</div>
               ) : (
                 <ul className="divide-y hairline border hairline bg-[var(--color-paper)]">
-                  {members.map((m) => (
-                    <li key={m.name} className="px-3 md:px-4 py-3 flex items-center gap-3">
-                      <span className="h-8 w-8 shrink-0 bg-[var(--color-cardinal)] text-[var(--color-paper)] flex items-center justify-center font-[family-name:var(--font-display)] text-[11px]">
-                        {initials(m.name)}
-                      </span>
-                      <span className="flex-1 min-w-0">
-                        <span className="block text-[14px] truncate">{m.name}</span>
-                        <span className="block text-[11px] text-[var(--color-muted)] truncate">{m.role}</span>
-                      </span>
-                      <a
-                        href={m.linkedin || linkedInSearchUrl(m.name)}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label={`${m.name} on LinkedIn`}
-                        className="inline-flex items-center justify-center w-7 h-7 border hairline text-[var(--color-muted)] hover:bg-[var(--color-cardinal)] hover:border-[var(--color-cardinal)] hover:text-[var(--color-paper)] transition-colors shrink-0"
-                      >
-                        <LinkedInIcon className="w-3 h-3" />
-                      </a>
-                    </li>
-                  ))}
+                  {members.map((m) => {
+                    const meta = memberMeta.get(m.name);
+                    return (
+                      <li key={m.name} className="px-3 md:px-4 py-3 flex items-center gap-3">
+                        <MemberAvatar name={m.name} avatarUrl={meta?.avatar ?? null} />
+                        <span className="flex-1 min-w-0">
+                          {meta?.username ? (
+                            <Link href={`/m/${meta.username}`} className="block text-[14px] truncate hover:text-[var(--color-cardinal)]">
+                              {m.name}
+                            </Link>
+                          ) : (
+                            <span className="block text-[14px] truncate">{m.name}</span>
+                          )}
+                          <span className="block text-[11px] text-[var(--color-muted)] truncate">{m.role}</span>
+                        </span>
+                        {meta?.username && (
+                          <Link
+                            href={`/m/${meta.username}`}
+                            className="text-[10px] font-mono uppercase tracking-wider text-[var(--color-cardinal)] border-b border-[var(--color-cardinal)] pb-0.5 shrink-0"
+                          >
+                            View profile
+                          </Link>
+                        )}
+                        <LinkedInChip linkedin={m.linkedin} name={m.name} />
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
@@ -143,5 +190,23 @@ export function TeamAccordion({
         </div>
       </div>
     </article>
+  );
+}
+
+function MemberAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
+  if (avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatarUrl}
+        alt={name}
+        className="h-8 w-8 shrink-0 rounded-full object-cover border border-[var(--color-cardinal)] block"
+      />
+    );
+  }
+  return (
+    <span className="h-8 w-8 shrink-0 rounded-full bg-[var(--color-cardinal)] text-[var(--color-paper)] flex items-center justify-center font-[family-name:var(--font-display)] text-[11px]">
+      {initials(name)}
+    </span>
   );
 }

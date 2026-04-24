@@ -2,13 +2,48 @@ import Link from "next/link";
 import { SectionLabel } from "@/components/section-label";
 import { ROSTER, byTeam, initials, FACULTY_ADVISORS } from "@/lib/roster";
 import { ScrollHint } from "@/components/scroll-hint";
-import { LinkedInIcon, linkedInSearchUrl } from "@/components/linkedin-icon";
+import { LinkedInChip } from "@/components/linkedin-icon";
+import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 export const metadata = { title: "Leadership" };
+export const revalidate = 300;
 
-export default function LeadershipPage() {
+type MemberLookup = {
+  avatar_path: string | null;
+  username: string;
+  linkedin_url: string | null;
+};
+
+async function loadMemberLookup(): Promise<Map<string, MemberLookup>> {
+  try {
+    const admin = getSupabaseAdmin();
+    const { data } = await admin
+      .from("members")
+      .select("username, full_name, avatar_path, linkedin_url");
+    const map = new Map<string, MemberLookup>();
+    (data || []).forEach((r: { full_name: string; username: string; avatar_path: string | null; linkedin_url: string | null }) => {
+      map.set(r.full_name, {
+        avatar_path: r.avatar_path,
+        username: r.username,
+        linkedin_url: r.linkedin_url,
+      });
+    });
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+function publicAvatarUrl(path: string | null): string | null {
+  if (!path) return null;
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) return null;
+  return `${base.replace(/\/+$/, "")}/storage/v1/object/public/avatars/${path}`;
+}
+
+export default async function LeadershipPage() {
   const exec = byTeam("Executive Committee");
-  const directors = byTeam("Directors");
+  const lookup = await loadMemberLookup();
 
   return (
     <>
@@ -19,12 +54,13 @@ export default function LeadershipPage() {
             Leadership
           </div>
           <h1 className="mt-4 font-[family-name:var(--font-display)] text-[clamp(2rem,6vw,3.75rem)] font-medium leading-[1.1]">
-            Executive Committee,<br />Directors, & Faculty Advisors.
+            Executive Committee<br />& Faculty Advisors.
           </h1>
           <p className="mt-8 max-w-2xl text-[var(--color-muted)] text-lg leading-relaxed">
-            The Executive Committee and all Directors form the Investment
-            Committee. Two-thirds quorum is required; pitches pass by simple
-            majority; the President casts tie-breakers.
+            The Executive Committee forms the core of the Investment
+            Committee alongside the Directors (see Teams). Two-thirds
+            quorum is required; pitches pass by simple majority; the
+            President casts tie-breakers.
           </p>
         </div>
       </section>
@@ -33,37 +69,20 @@ export default function LeadershipPage() {
       <section className="mx-auto max-w-7xl px-4 sm:px-6 py-14 md:py-20">
         <SectionLabel eyebrow="Executive Committee" title="Five seats. One mission." />
         <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-          {exec.map((m, i) => (
-            <PersonCard
-              key={m.name}
-              seat={`Seat 0${i + 1}`}
-              name={m.name}
-              role={m.role}
-              linkedin={m.linkedin}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Directors */}
-      <section className="border-y hairline bg-[var(--color-bone)]">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-14 md:py-20">
-          <SectionLabel
-            eyebrow="Directors"
-            title="Seven directors lead research."
-            subtitle="Each director owns a research team and sits on the Investment Committee. Operations & Technology — the eighth team — reports up to the COO and CTO on the Executive Committee."
-          />
-          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-            {directors.map((m) => (
+          {exec.map((m, i) => {
+            const l = lookup.get(m.name);
+            return (
               <PersonCard
                 key={m.name}
-                seat="IC Member"
+                seat={`Seat 0${i + 1}`}
                 name={m.name}
                 role={m.role}
-                linkedin={m.linkedin}
+                linkedin={l?.linkedin_url || m.linkedin}
+                avatarUrl={publicAvatarUrl(l?.avatar_path ?? null)}
+                username={l?.username}
               />
-            ))}
-          </div>
+            );
+          })}
         </div>
       </section>
 
@@ -125,21 +144,13 @@ export default function LeadershipPage() {
                 </tr>
               </thead>
               <tbody className="divide-y hairline">
-                {ROSTER.map((m) => (
+                {[...ROSTER].sort((a, b) => a.name.localeCompare(b.name)).map((m) => (
                   <tr key={m.name} className="hover:bg-[var(--color-bone)]/60">
                     <td className="px-4 md:px-5 py-3 whitespace-nowrap">{m.name}</td>
                     <td className="px-4 md:px-5 py-3 text-[var(--color-muted)] whitespace-nowrap">{m.team}</td>
                     <td className="px-4 md:px-5 py-3">{m.role}</td>
                     <td className="px-4 md:px-5 py-3">
-                      <a
-                        href={m.linkedin || linkedInSearchUrl(m.name)}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label={`${m.name} on LinkedIn`}
-                        className="inline-flex items-center justify-center w-7 h-7 border hairline text-[var(--color-muted)] hover:bg-[var(--color-cardinal)] hover:border-[var(--color-cardinal)] hover:text-[var(--color-paper)] transition-colors"
-                      >
-                        <LinkedInIcon className="w-3.5 h-3.5" />
-                      </a>
+                      <LinkedInChip linkedin={m.linkedin} name={m.name} />
                     </td>
                   </tr>
                 ))}
@@ -149,33 +160,6 @@ export default function LeadershipPage() {
         </div>
       </section>
 
-      {/* Alumni board CTA */}
-      <section className="border-t hairline">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 md:py-16 grid md:grid-cols-2 gap-10 items-center">
-          <div>
-            <div className="rule-label flex items-center gap-3">
-              <span className="inline-block h-px w-8 bg-[var(--color-cardinal)]" />
-              Alumni Advisory Board
-            </div>
-            <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl md:text-4xl leading-tight font-medium">
-              Industry mentorship — reviewed annually.
-            </h2>
-            <p className="mt-4 text-[var(--color-muted)] max-w-xl leading-relaxed">
-              Former Fund members and industry professionals commit to an
-              annual review of performance, governance, and may propose
-              amendments to the bylaws.
-            </p>
-          </div>
-          <div>
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 bg-[var(--color-cardinal)] text-[var(--color-paper)] px-6 py-3 text-sm uppercase hover:bg-[var(--color-cardinal-deep)]"
-            >
-              Nominate an advisor
-            </Link>
-          </div>
-        </div>
-      </section>
     </>
   );
 }
@@ -185,37 +169,60 @@ function PersonCard({
   name,
   role,
   linkedin,
+  avatarUrl,
+  username,
 }: {
   seat: string;
   name: string;
   role: string;
   linkedin?: string;
+  avatarUrl?: string | null;
+  username?: string;
 }) {
-  const href = linkedin || linkedInSearchUrl(name);
   return (
-    <article className="bg-[var(--color-paper)] border hairline p-6 md:p-7 relative">
+    <article className="bg-[var(--color-paper)] border hairline p-6 md:p-7 relative flex flex-col">
       <div className="absolute top-0 left-0 h-[3px] w-10 bg-[var(--color-cardinal)]" />
-      <div className="flex items-start justify-between">
-        <div className="rule-label">{seat}</div>
-        <a
-          href={href}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={`${name} on LinkedIn`}
-          className="inline-flex items-center justify-center w-7 h-7 border hairline text-[var(--color-muted)] hover:bg-[var(--color-cardinal)] hover:border-[var(--color-cardinal)] hover:text-[var(--color-paper)] transition-colors"
-        >
-          <LinkedInIcon className="w-3.5 h-3.5" />
-        </a>
-      </div>
+
+      {/* Top eyebrow only — actions moved to the footer so the hero row stays clean */}
+      <div className="rule-label">{seat}</div>
+
+      {/* Hero: photo + name stacked */}
       <div className="mt-5 flex items-center gap-4">
-        <div className="h-12 w-12 shrink-0 bg-[var(--color-cardinal)] text-[var(--color-paper)] flex items-center justify-center font-[family-name:var(--font-display)] text-sm">
-          {initials(name)}
-        </div>
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt={name}
+            className="h-14 w-14 shrink-0 rounded-full object-cover border border-[var(--color-cardinal)]"
+          />
+        ) : (
+          <div className="h-14 w-14 shrink-0 bg-[var(--color-cardinal)] text-[var(--color-paper)] rounded-full flex items-center justify-center font-[family-name:var(--font-display)] text-base">
+            {initials(name)}
+          </div>
+        )}
         <div className="min-w-0">
-          <div className="font-[family-name:var(--font-display)] text-xl leading-tight">{name}</div>
+          <div className="font-[family-name:var(--font-display)] text-xl leading-tight">
+            {name}
+          </div>
         </div>
       </div>
-      <p className="mt-4 text-[13px] text-[var(--color-muted)] leading-snug">{role}</p>
+
+      <p className="mt-4 text-[13px] text-[var(--color-muted)] leading-snug flex-1">{role}</p>
+
+      {/* Footer actions — View profile + LinkedIn grouped at the bottom */}
+      <div className="mt-5 pt-4 border-t hairline flex items-center justify-between gap-3">
+        {username ? (
+          <Link
+            href={`/m/${username}`}
+            className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-[var(--color-cardinal)] border-b border-[var(--color-cardinal)] pb-0.5"
+          >
+            View profile →
+          </Link>
+        ) : (
+          <span />
+        )}
+        <LinkedInChip linkedin={linkedin} name={name} />
+      </div>
     </article>
   );
 }

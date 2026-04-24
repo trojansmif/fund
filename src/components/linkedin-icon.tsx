@@ -17,3 +17,45 @@ export function linkedInSearchUrl(name: string) {
     `${clean} USC Marshall`
   )}`;
 }
+
+/** Ensures a LinkedIn URL has a protocol, so it works as an anchor href. */
+export function normalizeLinkedin(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed.replace(/^\/\//, "")}`;
+}
+
+/** Renders the LinkedIn chip in cardinal red when the member has a real URL,
+ *  or in a muted/bordered style when we only have a name-search fallback. */
+export function LinkedInChip({
+  linkedin,
+  name,
+  size = "sm",
+}: {
+  linkedin?: string | null;
+  name: string;
+  size?: "sm" | "md";
+}) {
+  const normalized = normalizeLinkedin(linkedin);
+  const href = normalized ?? linkedInSearchUrl(name);
+  const hasReal = !!normalized;
+  const dims = size === "md" ? "w-8 h-8" : "w-7 h-7";
+  const icon = size === "md" ? "w-4 h-4" : "w-3.5 h-3.5";
+  const cls = hasReal
+    ? `${dims} bg-[var(--color-cardinal)] border border-[var(--color-cardinal)] text-[var(--color-paper)] hover:bg-[var(--color-cardinal-deep)]`
+    : `${dims} border hairline text-[var(--color-muted)] hover:bg-[var(--color-cardinal)] hover:border-[var(--color-cardinal)] hover:text-[var(--color-paper)]`;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`${name} on LinkedIn`}
+      title={hasReal ? `${name} on LinkedIn` : `Search for ${name} on LinkedIn`}
+      className={`inline-flex items-center justify-center transition-colors shrink-0 ${cls}`}
+    >
+      <LinkedInIcon className={icon} />
+    </a>
+  );
+}

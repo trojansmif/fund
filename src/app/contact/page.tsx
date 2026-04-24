@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { SectionLabel } from "@/components/section-label";
 
 export const metadata = { title: "Contact" };
+
+const FUND_EMAIL = "trojansmif@marshall.usc.edu";
 
 export default function ContactPage() {
   return (
@@ -23,12 +24,12 @@ export default function ContactPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 sm:px-6 py-12 md:py-16">
-        <div className="grid md:grid-cols-2 gap-px bg-[var(--color-rule)] border hairline">
+        <div className="grid md:grid-cols-3 gap-px bg-[var(--color-rule)] border hairline">
           <Panel
             k="Prospective members"
             title="Join the Fund"
             cta="Email us"
-            href="mailto:connorchisick@gmail.com?subject=Trojan%20SMIF%20%E2%80%94%20Interest"
+            href={`mailto:${FUND_EMAIL}?subject=${encodeURIComponent("Trojan SMIF — Interest")}`}
           >
             MSF students and other eligible graduates — reach out directly to
             the Executive Committee. Formal recruiting launches Fall 2026.
@@ -37,7 +38,7 @@ export default function ContactPage() {
             k="Alumni & industry"
             title="Advisory Board, mentorship, speaking"
             cta="Open a conversation"
-            href="mailto:connorchisick@gmail.com?subject=Trojan%20SMIF%20%E2%80%94%20Alumni%20%2F%20Industry"
+            href={`mailto:${FUND_EMAIL}?subject=${encodeURIComponent("Trojan SMIF — Alumni / Industry")}`}
           >
             Alumni Advisory Board nominations, analyst mentorship, pitch
             feedback, and guest sessions.
@@ -46,46 +47,34 @@ export default function ContactPage() {
             k="Marshall faculty"
             title="Coursework & collaboration"
             cta="Propose collaboration"
-            href="mailto:connorchisick@gmail.com?subject=Trojan%20SMIF%20%E2%80%94%20Faculty"
+            href={`mailto:${FUND_EMAIL}?subject=${encodeURIComponent("Trojan SMIF — Faculty")}`}
           >
             Coordinated projects, data access, and curriculum-aligned case
             competitions.
-          </Panel>
-          <Panel
-            k="Press & media"
-            title="Quotes, events, and coverage"
-            cta="Media inquiry"
-            href="mailto:connorchisick@gmail.com?subject=Trojan%20SMIF%20%E2%80%94%20Media"
-          >
-            Coverage, commentary, and event invitations. We'll route through
-            the Director of Communications.
           </Panel>
         </div>
       </section>
 
       <section className="border-t hairline bg-[var(--color-bone)]">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 md:py-16 grid md:grid-cols-3 gap-10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 md:py-16 grid md:grid-cols-2 gap-10">
           <div>
             <div className="rule-label flex items-center gap-3">
               <span className="inline-block h-px w-8 bg-[var(--color-cardinal)]" />
-              Find us
+              The Fund
             </div>
             <p className="mt-3 font-[family-name:var(--font-display)] text-2xl leading-tight">
-              JFF 414<br />
-              <span className="text-[var(--color-muted)] text-base">USC Marshall School of Business</span>
+              USC Marshall School of Business
+              <br />
+              <span className="text-[var(--color-muted)] text-base">Master of Science in Finance</span>
             </p>
-            <p className="mt-3 text-sm text-[var(--color-muted)]">Mondays · 6:00 PM PT</p>
-          </div>
-          <div>
-            <div className="rule-label flex items-center gap-3">
-              <span className="inline-block h-px w-8 bg-[var(--color-cardinal)]" />
-              Virtual
-            </div>
-            <p className="mt-3 font-[family-name:var(--font-display)] text-2xl leading-tight">
-              Zoom<br />
-              <span className="text-[var(--color-muted)] text-base">Thursdays</span>
+            <p className="mt-4 text-sm">
+              <a
+                href={`mailto:${FUND_EMAIL}`}
+                className="text-[var(--color-cardinal)] border-b border-[var(--color-cardinal)] pb-0.5"
+              >
+                {FUND_EMAIL}
+              </a>
             </p>
-            <p className="mt-3 text-sm text-[var(--color-muted)]">Link distributed to members</p>
           </div>
           <div>
             <div className="rule-label flex items-center gap-3">
@@ -94,13 +83,23 @@ export default function ContactPage() {
             </div>
             <ul className="mt-3 space-y-2">
               <li>
-                <a href="https://www.linkedin.com/company/113424338" target="_blank" rel="noreferrer" className="hover:text-[var(--color-cardinal)]">
+                <a
+                  href="https://www.linkedin.com/company/113424338"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-[var(--color-cardinal)]"
+                >
                   LinkedIn ↗
                 </a>
               </li>
               <li>
                 <Link href="/portfolio" className="hover:text-[var(--color-cardinal)]">
                   Live Portfolio →
+                </Link>
+              </li>
+              <li>
+                <Link href="/leadership" className="hover:text-[var(--color-cardinal)]">
+                  Leadership & Roster →
                 </Link>
               </li>
             </ul>
@@ -133,7 +132,7 @@ function Panel({
       <p className="mt-4 text-[var(--color-muted)] leading-relaxed">{children}</p>
       <a
         href={href}
-        className="mt-6 inline-flex items-center gap-2 text-sm uppercase  text-[var(--color-cardinal)] border-b border-[var(--color-cardinal)] pb-1"
+        className="mt-6 inline-flex items-center gap-2 text-sm uppercase text-[var(--color-cardinal)] border-b border-[var(--color-cardinal)] pb-1"
       >
         {cta} →
       </a>

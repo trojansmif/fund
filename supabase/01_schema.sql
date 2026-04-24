@@ -92,8 +92,11 @@ create policy "members_admin_insert" on public.members
 create or replace function public.guard_member_self_update()
 returns trigger language plpgsql as $$
 begin
+  -- Trusted contexts (service role / SQL Editor) have no user JWT → full access.
+  if auth.uid() is null then return new; end if;
+  -- Admin user → full access.
   if (select m.is_admin from public.members m where m.auth_user_id = auth.uid()) then
-    return new; -- admins bypass this guard
+    return new;
   end if;
   if new.username     is distinct from old.username     then raise exception 'username is immutable'; end if;
   if new.full_name    is distinct from old.full_name    then raise exception 'full_name can only be changed by an admin'; end if;
@@ -117,13 +120,21 @@ create or replace function public.enforce_usc_email()
 returns trigger language plpgsql as $$
 declare
   lowered text := lower(new.email);
+  on_roster boolean;
 begin
-  if lowered not like '%@usc.edu'
-     and lowered not like '%@marshall.usc.edu'
-     and lowered not like '%@viterbi.usc.edu'
-     and lowered not like '%@dornsife.usc.edu' then
-    raise exception 'Only USC email addresses can register for Trojan SMIF.';
+  -- 1. Marshall domain gate
+  if lowered not like '%@marshall.usc.edu' then
+    raise exception 'Only USC Marshall emails can register for Trojan SMIF.';
   end if;
+
+  -- 2. SMIF roster gate — email must already exist on public.members
+  select exists (select 1 from public.members where lower(email) = lowered)
+  into on_roster;
+
+  if not on_roster then
+    raise exception 'This email is not on the Trojan SMIF roster. Contact a Fund admin to be added.';
+  end if;
+
   return new;
 end;
 $$;

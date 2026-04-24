@@ -33,18 +33,14 @@
     background: var(--color-gold);
     color: var(--color-ink);
   }
-  h1,
-  h2,
-  h3,
-  h4,
-  p,
-  span,
-  a,
-  li,
-  td,
-  th,
-  div {
-    letter-spacing: 0 !important;
+  /* Uniform tightening for the mono type stack — a single tracking scale
+     applied everywhere so headings and body feel consistent. */
+  html {
+    letter-spacing: -0.02em;
+  }
+  body {
+    font-weight: 400;
+    letter-spacing: -0.02em;
   }
   h1,
   h2,
@@ -52,30 +48,34 @@
   h4 {
     font-family: var(--font-display);
     font-weight: 500;
+    letter-spacing: -0.035em;
+    word-spacing: -0.18em;
   }
-  body {
-    font-weight: 400;
+  h1 {
+    letter-spacing: -0.04em;
+    word-spacing: -0.24em;
   }
-  /* Uniform tracking for all uppercase ornament text (labels, tags, buttons) */
+  p,
+  li {
+    word-spacing: -0.06em;
+  }
+  /* Uppercase ornament text (labels, tags, mono buttons) needs air, not
+     tightening — caps fuse together when tracked negative. */
   .uppercase,
   [class*="uppercase"] {
-    letter-spacing: 0.1em !important;
+    letter-spacing: 0.08em !important;
   }
   .font-num {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;
+    letter-spacing: -0.01em;
   }
 }
 
-/* Thin top ticker + grain texture for an editorial feel */
-.paper-grain {
-  background-image:
-    radial-gradient(rgba(10, 10, 11, 0.035) 1px, transparent 1px),
-    radial-gradient(rgba(10, 10, 11, 0.02) 1px, transparent 1px);
-  background-size: 3px 3px, 7px 7px;
-  background-position: 0 0, 1px 1px;
-}
+/* .paper-grain used to apply a dotted editorial texture; removed per
+   design direction. Kept as a no-op so existing usages stay valid. */
+.paper-grain {}
 
 .hairline {
   border-color: var(--color-rule);
@@ -127,4 +127,10 @@
 .gold-line {
   background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
   height: 1px;
+}
+
+/* Home page gets slightly tighter display spacing on the hero headline. */
+.home-tight h1 {
+  word-spacing: -0.32em;
+  letter-spacing: -0.035em;
 }

@@ -21,7 +21,7 @@ const EQUITY_SECTORS: { label: string; name: string; role: string }[] = [
   { label: "Energy", name: "Mridul Bhatla", role: "Co-Energy Lead" },
   { label: "Materials", name: "Hao-Chen (Howard) Shieh", role: "Materials + Real Estate Lead" },
   { label: "Industrials", name: "Ian Martin", role: "Industrials Lead" },
-  { label: "Consumer Discretionary", name: "Alexander Chika-Nwanja", role: "Consumer Discretionary Lead" },
+  { label: "Consumer Discretionary", name: "Nnamdi Chika-Nwanja", role: "Consumer Discretionary Lead" },
   { label: "Consumer Staples", name: "Mrudula Gurumani", role: "Consumer Staples Lead" },
   { label: "Health Care", name: "Dylan Martling", role: "Healthcare Lead" },
   { label: "Financials", name: "Vivian Wei", role: "Financials Lead" },
@@ -33,6 +33,24 @@ const EQUITY_SECTORS: { label: string; name: string; role: string }[] = [
 ];
 
 const TEAMS: Team[] = [
+  {
+    k: "EC",
+    name: "Executive Committee",
+    lead: "President + CIO",
+    blurb: "Five seats: President, COO, CRO, Chief Economist, CTO.",
+    detail:
+      "The Executive Committee runs Fund operations and chairs the Investment Committee. Five elected seats: President + CIO, COO + Director of Operations, CRO, Chief Economist + US Economics Lead, and CTO. Every trade the Fund executes requires a majority of the IC (EC + Directors); the President casts tie-breakers, the CRO may veto trades that breach policy, and the Faculty Advisors hold non-voting oversight.",
+    match: (m) => m.team === "Executive Committee",
+  },
+  {
+    k: "DR",
+    name: "Directors",
+    lead: "Seven directors — one per research team",
+    blurb: "Chair each research team; sit on the Investment Committee.",
+    detail:
+      "Each Director owns a research team and votes on the Investment Committee alongside the Executive Committee. Seven directorships cover Fixed Income (co-directed), Risk Management, Economics Research, Alternative Investments, Quantitative Strategies, and US + International Equities. Operations & Technology — the seventh team — reports to the COO and CTO on the EC.",
+    match: (m) => m.team === "Directors",
+  },
   {
     k: "01",
     name: "Equities",
@@ -128,7 +146,7 @@ export default function TeamsPage() {
             Teams
           </div>
           <h1 className="mt-4 font-[family-name:var(--font-display)] text-[clamp(2rem,6vw,3.75rem)] leading-[1.1] font-medium">
-            Seven teams.<br />One Investment Committee.
+            One Investment Committee.<br />All the moving parts.
           </h1>
           <p className="mt-8 max-w-2xl text-lg text-[var(--color-muted)] leading-relaxed">
             Tap any team to see its members and what they own. Every team is

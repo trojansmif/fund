@@ -47,10 +47,10 @@ export type Snapshot = {
 // Update these numbers by exporting the Compliance and Holdings sheets of the tracker.
 export const SEED_SNAPSHOT: Snapshot = {
   asOf: "2026-04-20",
-  nav: 127348,
-  startingAUM: 100000,
-  invested: 41588,
-  cash: 85760,
+  nav: 1273480,
+  startingAUM: 1000000,
+  invested: 415880,
+  cash: 857600,
   cashPct: 67.35,
   positions: 24,
   sinceInception: 27.35,

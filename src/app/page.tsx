@@ -3,13 +3,15 @@ import { SectionLabel } from "@/components/section-label";
 import { KPI } from "@/components/kpi";
 import { PerfChart } from "@/components/perf-chart";
 import { WeightBars } from "@/components/weight-bars";
+import { PlaceholderBadge, PlaceholderBanner } from "@/components/placeholder-badge";
 import { SEED_SNAPSHOT, formatPct, formatUSD } from "@/lib/portfolio";
+import { ROSTER } from "@/lib/roster";
 
 export default function HomePage() {
   const s = SEED_SNAPSHOT;
   const excess = s.sinceInception - 15.1; // proxy vs SPY path
   return (
-    <>
+    <div className="home-tight">
       {/* Hero */}
       <section className="relative overflow-hidden border-b hairline">
         <div className="absolute inset-0 -z-10 paper-grain" />
@@ -24,19 +26,22 @@ export default function HomePage() {
           }}
         />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 pt-14 pb-16 md:pt-24 md:pb-28">
-          <div className="grid grid-cols-12 gap-8 items-end">
+          <div className="grid grid-cols-12 gap-8 items-start">
             <div className="col-span-12 md:col-span-8">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                 <span className="tag">Founded Fall 2025</span>
                 <span className="tag">USC Marshall · MSF</span>
                 <Link href="/leadership#roster" className="tag hover:border-[var(--color-cardinal)] hover:text-[var(--color-cardinal)]">
-                  45+ Members →
+                  {ROSTER.length} Members →
                 </Link>
               </div>
-              <h1 className="font-[family-name:var(--font-display)] text-[clamp(2rem,7vw,4rem)] leading-[1.08] font-medium">
-                A student-run fund,{" "}
+              <h1
+                className="font-[family-name:var(--font-display)] text-[clamp(2rem,7vw,4rem)] leading-[0.95] font-semibold"
+                style={{ wordSpacing: "-0.18em", letterSpacing: "-0.015em" }}
+              >
+                Managed by students,{" "}
                 <span className="hidden md:inline"><br /></span>
-                run like a <span className="text-[var(--color-cardinal)]">real one.</span>
+                driven by <span className="text-[var(--color-cardinal)]">excellence.</span>
               </h1>
               <p className="mt-5 md:mt-7 max-w-xl text-base sm:text-lg text-[var(--color-muted)] leading-relaxed">
                 The Trojan Student Managed Investment Fund gives USC Marshall
@@ -52,21 +57,24 @@ export default function HomePage() {
                   View live portfolio
                   <span aria-hidden>→</span>
                 </Link>
-                <Link
-                  href="/contact"
+                <a
+                  href="https://www.linkedin.com/company/113424338"
+                  target="_blank"
+                  rel="noreferrer"
                   className="inline-flex items-center gap-3 border border-[var(--color-ink)] px-6 py-3 text-sm uppercase hover:bg-[var(--color-cardinal)] hover:border-[var(--color-cardinal)] hover:text-[var(--color-paper)] transition-colors"
                 >
-                  Contact the Fund
-                </Link>
+                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden>
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.024-3.037-1.852-3.037-1.854 0-2.136 1.445-2.136 2.939v5.667H9.35V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.268 2.37 4.268 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.063 2.063 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.543C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                  Follow on LinkedIn
+                </a>
               </div>
             </div>
             <div className="col-span-12 md:col-span-4 hidden md:block">
               <div className="border hairline bg-[var(--color-paper)]">
-                <div className="flex items-center justify-between px-5 py-3 border-b hairline">
+                <div className="flex items-center justify-between px-5 py-3 border-b hairline gap-3">
                   <div className="rule-label">Fund Snapshot</div>
-                  <div className="font-mono text-[10px] uppercase  text-[var(--color-muted)]">
-                    As of {s.asOf}
-                  </div>
+                  <PlaceholderBadge />
                 </div>
                 <div className="px-5 py-6">
                   <div className="rule-label">Net Asset Value</div>
@@ -111,13 +119,22 @@ export default function HomePage() {
 
       {/* KPI strip */}
       <section className="border-b hairline">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-px bg-[var(--color-rule)]">
-          <Metric label="Starting AUM" value={formatUSD(s.startingAUM)} />
-          <Metric label="Current NAV" value={formatUSD(s.nav)} />
-          <Metric label="Annualized Return" value={formatPct(s.annualizedReturn)} tone="positive" />
-          <Metric label="Annualized Vol." value={`${s.annualizedVol.toFixed(2)}%`} />
-          <Metric label="Alpha vs SPY" value={formatPct(s.alpha)} tone="positive" />
-          <Metric label="Info Ratio" value={s.informationRatio.toFixed(2)} />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 pt-6 flex items-center justify-between gap-3">
+          <div className="rule-label flex items-center gap-3">
+            <span className="inline-block h-px w-8 bg-[var(--color-cardinal)]" />
+            Performance summary
+          </div>
+          <PlaceholderBadge />
+        </div>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 pt-3 pb-12">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-px bg-[var(--color-rule)]">
+            <Metric label="Starting AUM" value={formatUSD(s.startingAUM)} />
+            <Metric label="Current NAV" value={formatUSD(s.nav)} />
+            <Metric label="Annualized Return" value={formatPct(s.annualizedReturn)} tone="positive" />
+            <Metric label="Annualized Vol." value={`${s.annualizedVol.toFixed(2)}%`} />
+            <Metric label="Alpha vs SPY" value={formatPct(s.alpha)} tone="positive" />
+            <Metric label="Info Ratio" value={s.informationRatio.toFixed(2)} />
+          </div>
         </div>
       </section>
 
@@ -144,7 +161,7 @@ export default function HomePage() {
               defensible, thoughtful investors.
             </p>
             <div className="pt-4 grid grid-cols-3 gap-6">
-              <Stat k="$100K" v="Starting AUM" />
+              <Stat k="$1M" v="Starting AUM" />
               <Stat k="8" v="Investment teams" />
               <Stat k="12–18 mo" v="Typical horizon" />
             </div>
@@ -152,9 +169,17 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Placeholder banner — pulled out of the beige Performance panel
+          so it sits on the white background above, with clear separation. */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 pt-6 md:pt-10 pb-10 md:pb-14">
+        <PlaceholderBanner
+          body="The NAV curve and every figure below are illustrative until the SMIF Portfolio Tracker is connected to the live feed."
+        />
+      </section>
+
       {/* Performance panel */}
-      <section className="border-y hairline bg-[var(--color-bone)]">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-14 md:py-20">
+      <section className="border-y hairline">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-10 md:py-14">
           <div className="flex flex-wrap items-end justify-between gap-6 mb-10">
             <SectionLabel
               eyebrow="Performance"
@@ -216,7 +241,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="border-t hairline bg-[var(--color-bone)]">
+      <section className="border-t hairline">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-24 grid grid-cols-12 gap-10 items-center">
           <div className="col-span-12 md:col-span-8">
             <span className="inline-block h-[3px] w-16 bg-[var(--color-cardinal)]" />
@@ -230,16 +255,21 @@ export default function HomePage() {
             </p>
           </div>
           <div className="col-span-12 md:col-span-4 flex md:justify-end">
-            <Link
-              href="/contact"
+            <a
+              href="https://www.linkedin.com/company/113424338"
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center gap-3 bg-[var(--color-cardinal)] text-[var(--color-paper)] px-8 py-4 text-sm uppercase hover:bg-[var(--color-cardinal-deep)] transition-colors"
             >
-              Contact the Fund
-            </Link>
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden>
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.024-3.037-1.852-3.037-1.854 0-2.136 1.445-2.136 2.939v5.667H9.35V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.268 2.37 4.268 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.063 2.063 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.543C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+              </svg>
+              Follow on LinkedIn
+            </a>
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }
 

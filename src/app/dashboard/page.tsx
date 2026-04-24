@@ -1,23 +1,42 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  addPitch,
-  buildMailto,
-  loadPitches,
-  removePitch,
-  submitPitch,
-  type PitchRecord,
-} from "@/lib/pitch-store";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ProfileTab } from "@/components/profile-tab";
+import { AdminTab } from "@/components/admin-tab";
+import { PitchTab as PitchTabV2 } from "@/components/pitch-tab";
+import { useSupabaseSession } from "@/lib/supabase/use-session";
+import { PlaceholderBadge, PlaceholderBanner } from "@/components/placeholder-badge";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { UpcomingMeetings } from "@/components/upcoming-meetings";
 
-type Tab = "home" | "pitch" | "insights" | "resources" | "profile";
+type Tab = "home" | "messages" | "pitch" | "insights" | "resources" | "profile" | "admin";
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+function DashboardContent() {
   const router = useRouter();
+  const params = useSearchParams();
+  const { profile } = useSupabaseSession();
+  const isAdmin = !!profile?.is_admin;
   const [tab, setTab] = useState<Tab>("home");
+
+  // Honor ?tab= on load; only allow "admin" if the user is actually admin
+  useEffect(() => {
+    const requested = params.get("tab");
+    const validTabs: Tab[] = ["home", "messages", "pitch", "insights", "resources", "profile", "admin"];
+    if (requested && (validTabs as string[]).includes(requested)) {
+      if (requested === "admin" && !isAdmin) return; // silently fall through
+      setTab(requested as Tab);
+    }
+  }, [params, isAdmin]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 md:py-12">
@@ -25,13 +44,16 @@ export default function DashboardPage() {
         tab={tab}
         onTab={setTab}
         onExit={() => router.push("/")}
+        isAdmin={isAdmin}
       />
       <div className="mt-8">
         {tab === "home" && <HomeTab onTab={setTab} />}
-        {tab === "pitch" && <PitchTab />}
+        {tab === "messages" && <MessagesTab />}
+        {tab === "pitch" && <PitchTabV2 />}
         {tab === "insights" && <InsightsTab />}
         {tab === "resources" && <ResourcesTab />}
         {tab === "profile" && <ProfileTab />}
+        {tab === "admin" && <AdminTab />}
       </div>
     </div>
   );
@@ -43,17 +65,21 @@ function Header({
   tab,
   onTab,
   onExit,
+  isAdmin,
 }: {
   tab: Tab;
   onTab: (t: Tab) => void;
   onExit: () => void;
+  isAdmin: boolean;
 }) {
   const tabs: { k: Tab; label: string }[] = [
-    { k: "home", label: "Today" },
+    { k: "home", label: "Home" },
+    { k: "messages", label: "Messages" },
     { k: "pitch", label: "Submit Pitch" },
     { k: "insights", label: "Insights" },
     { k: "resources", label: "Resources" },
     { k: "profile", label: "Profile" },
+    ...(isAdmin ? [{ k: "admin" as Tab, label: "Admin" }] : []),
   ];
   return (
     <div>
@@ -102,356 +128,295 @@ function Header({
 /* ───────────────────────── Today tab ───────────────────────── */
 
 function HomeTab({ onTab }: { onTab: (t: Tab) => void }) {
-  const [pitches, setPitches] = useState<PitchRecord[]>([]);
-
-  useEffect(() => {
-    setPitches(loadPitches());
-  }, []);
-
-  const drafts = pitches.filter((p) => p.status === "DRAFT").length;
-  const submitted = pitches.filter((p) => p.status === "SUBMITTED").length;
-
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">
-      {/* Your pitches */}
-      <Card title="Your pitches" span="md:col-span-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="font-num text-3xl text-[var(--color-cardinal)]">{drafts}</div>
-            <div className="rule-label mt-1">Drafts</div>
-          </div>
-          <div>
-            <div className="font-num text-3xl text-[var(--color-positive)]">{submitted}</div>
-            <div className="rule-label mt-1">Sent</div>
-          </div>
-        </div>
-        <button
-          onClick={() => onTab("pitch")}
-          className="mt-5 bg-[var(--color-cardinal)] text-[var(--color-paper)] px-4 py-2 text-xs uppercase font-mono hover:bg-[var(--color-cardinal-deep)]"
-        >
-          New pitch →
-        </button>
-      </Card>
+      {/* Left column — pitch + quick links stacked */}
+      <div className="col-span-12 md:col-span-7 space-y-4 md:space-y-6">
+        <Card title="Investment pitch">
+          <p className="text-sm text-[var(--color-muted)] leading-relaxed">
+            Submit a new pitch to the Investment Committee. Approval requires 3
+            of 5 Executive Committee votes; either Faculty Advisor can veto.
+          </p>
+          <button
+            onClick={() => onTab("pitch")}
+            className="mt-5 bg-[var(--color-cardinal)] text-[var(--color-paper)] px-4 py-2 text-xs uppercase font-mono hover:bg-[var(--color-cardinal-deep)]"
+          >
+            New pitch →
+          </button>
+        </Card>
 
-      {/* Quick links */}
-      <Card title="Quick links" span="md:col-span-6">
-        <ul className="space-y-2 text-sm">
-          <li>
-            <Link href="/portfolio" className="flex items-center justify-between hover:text-[var(--color-cardinal)]">
-              <span>Live portfolio</span>
-              <span aria-hidden>→</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/research" className="flex items-center justify-between hover:text-[var(--color-cardinal)]">
-              <span>Pipeline tracker</span>
-              <span aria-hidden>→</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/leadership#roster" className="flex items-center justify-between hover:text-[var(--color-cardinal)]">
-              <span>Member roster</span>
-              <span aria-hidden>→</span>
-            </Link>
-          </li>
-          <li>
-            <button
-              onClick={() => onTab("resources")}
-              className="flex items-center justify-between w-full text-left hover:text-[var(--color-cardinal)]"
-            >
-              <span>Memo & valuation templates</span>
-              <span aria-hidden>→</span>
-            </button>
-          </li>
-        </ul>
-      </Card>
-
-      {/* Announcements */}
-      <Card title="Announcements" span="md:col-span-12">
-        <ul className="divide-y hairline">
-          {ANNOUNCEMENTS.map((a) => (
-            <li key={a.title} className="py-3 grid grid-cols-12 gap-3 items-start">
-              <div className="col-span-12 md:col-span-2 text-xs font-mono uppercase text-[var(--color-muted)]">
-                {a.date}
-              </div>
-              <div className="col-span-12 md:col-span-8">
-                <div className="font-[family-name:var(--font-display)] text-lg">{a.title}</div>
-                <div className="text-sm text-[var(--color-muted)] mt-0.5">{a.body}</div>
-              </div>
-              <div className="col-span-12 md:col-span-2 md:text-right">
-                <span className="tag">{a.tag}</span>
-              </div>
+        <Card title="Quick links">
+          <ul className="space-y-2 text-sm">
+            <li>
+              <Link href="/portfolio" className="flex items-center justify-between hover:text-[var(--color-cardinal)]">
+                <span>Live portfolio</span>
+                <span aria-hidden>→</span>
+              </Link>
             </li>
-          ))}
-        </ul>
+            <li>
+              <Link href="/research" className="flex items-center justify-between hover:text-[var(--color-cardinal)]">
+                <span>Pipeline tracker</span>
+                <span aria-hidden>→</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/leadership#roster" className="flex items-center justify-between hover:text-[var(--color-cardinal)]">
+                <span>Member roster</span>
+                <span aria-hidden>→</span>
+              </Link>
+            </li>
+            <li>
+              <button
+                onClick={() => onTab("resources")}
+                className="flex items-center justify-between w-full text-left hover:text-[var(--color-cardinal)]"
+              >
+                <span>Memo & valuation templates</span>
+                <span aria-hidden>→</span>
+              </button>
+            </li>
+          </ul>
+        </Card>
+      </div>
+
+      {/* Right column — Upcoming meetings */}
+      <div className="col-span-12 md:col-span-5">
+        <Card title="Upcoming meetings">
+          <UpcomingMeetings limit={6} />
+        </Card>
+      </div>
+
+      {/* Announcements — full width, live from DB */}
+      <Card title="Announcements" span="md:col-span-12">
+        <LiveAnnouncements />
       </Card>
     </div>
   );
 }
 
-const ANNOUNCEMENTS = [
-  { date: "2026-04-21", title: "Spring performance review", body: "Director-led walk-through of each sleeve before the summer cutoff.", tag: "REVIEW" },
-  { date: "2026-04-18", title: "New pitch template", body: "Investment memo template v2 is live — check Resources.", tag: "RESOURCE" },
-  { date: "2026-04-14", title: "CFA-OC SMIF competition", body: "Intent-to-compete forms due to the Director of Communications.", tag: "COMPETITION" },
-];
+/* ───────────────────────── Messages tab ───────────────────────── */
 
-/* ───────────────────────── Pitch tab ───────────────────────── */
-
-function PitchTab() {
-  const [pitches, setPitches] = useState<PitchRecord[]>([]);
-  const [form, setForm] = useState({
-    analyst: "",
-    ticker: "",
-    company: "",
-    rec: "BUY" as "BUY" | "HOLD" | "SELL",
-    entryPrice: "",
-    targetPrice: "",
-    thesis: "",
-    catalysts: "",
-    risks: "",
-  });
-  const [lastSaved, setLastSaved] = useState<PitchRecord | null>(null);
+function MessagesTab() {
+  const [items, setItems] = useState<LiveAnn[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string>("ALL");
 
   useEffect(() => {
-    setPitches(loadPitches());
+    (async () => {
+      const sb = getSupabaseBrowser();
+      if (!sb) {
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await sb
+        .from("announcements")
+        .select("id, title, body, tag, pinned, created_at")
+        .order("pinned", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (error) setErr(error.message);
+      else setItems((data as LiveAnn[]) ?? []);
+      setLoading(false);
+    })();
   }, []);
 
-  const upside = useMemo(() => {
-    const e = parseFloat(form.entryPrice);
-    const t = parseFloat(form.targetPrice);
-    if (!Number.isFinite(e) || !Number.isFinite(t) || e === 0) return 0;
-    return ((t - e) / e) * 100;
-  }, [form.entryPrice, form.targetPrice]);
+  const tags = useMemo(() => {
+    const s = new Set<string>();
+    items.forEach((i) => { if (i.tag) s.add(i.tag); });
+    return ["ALL", ...Array.from(s).sort()];
+  }, [items]);
 
-  function saveDraft(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.ticker || !form.company || !form.thesis) return;
-    const rec = addPitch({
-      analyst: form.analyst || "Analyst",
-      ticker: form.ticker.toUpperCase(),
-      company: form.company,
-      rec: form.rec,
-      entryPrice: parseFloat(form.entryPrice) || 0,
-      targetPrice: parseFloat(form.targetPrice) || 0,
-      upside,
-      thesis: form.thesis,
-      catalysts: form.catalysts,
-      risks: form.risks,
-      status: "DRAFT",
-    });
-    setPitches(loadPitches());
-    setLastSaved(rec);
-  }
-
-  function emailAndMark(id: string) {
-    submitPitch(id);
-    setPitches(loadPitches());
-  }
-
-  function clearAll() {
-    localStorage.removeItem("trojansmif.pitches");
-    setPitches([]);
-  }
+  const visible = filter === "ALL" ? items : items.filter((i) => i.tag === filter);
 
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">
-      <div className="col-span-12 lg:col-span-7">
-        <Card title="New investment pitch">
-          <form onSubmit={saveDraft} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Analyst">
-                <input
-                  className={inputCls}
-                  value={form.analyst}
-                  onChange={(e) => setForm({ ...form, analyst: e.target.value })}
-                  placeholder="Your name"
-                />
-              </Field>
-              <Field label="Recommendation">
-                <select
-                  className={inputCls}
-                  value={form.rec}
-                  onChange={(e) => setForm({ ...form, rec: e.target.value as typeof form.rec })}
-                >
-                  <option>BUY</option>
-                  <option>HOLD</option>
-                  <option>SELL</option>
-                </select>
-              </Field>
+      <Card title="Message board" span="md:col-span-12">
+        {loading ? (
+          <div className="text-sm text-[var(--color-muted)] font-mono uppercase">
+            Loading…
+          </div>
+        ) : err ? (
+          <div className="text-[12px] border border-[var(--color-negative)] text-[var(--color-negative)] px-3 py-2">
+            {/relation.*does not exist|announcements.*schema cache/i.test(err)
+              ? "Announcements table isn't set up yet — an admin needs to run 09_announcements.sql in Supabase."
+              : err}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-sm text-[var(--color-muted)] leading-relaxed">
+            No messages yet.
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2 mb-5">
+              {tags.map((t) => {
+                const active = filter === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setFilter(t)}
+                    className={`text-[10px] font-mono uppercase px-3 py-1.5 transition-colors ${
+                      active
+                        ? "bg-[var(--color-cardinal)] text-[var(--color-paper)]"
+                        : "border hairline hover:bg-[var(--color-bone)]"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+              <span className="ml-auto text-[10px] font-mono uppercase text-[var(--color-muted)]">
+                {visible.length} of {items.length}
+              </span>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Ticker" required>
-                <input
-                  className={inputCls}
-                  value={form.ticker}
-                  onChange={(e) => setForm({ ...form, ticker: e.target.value.toUpperCase() })}
-                  placeholder="e.g. CRM"
-                  required
-                />
-              </Field>
-              <Field label="Company" required>
-                <input
-                  className={inputCls}
-                  value={form.company}
-                  onChange={(e) => setForm({ ...form, company: e.target.value })}
-                  placeholder="Salesforce, Inc."
-                  required
-                />
-              </Field>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="Entry $">
-                <input
-                  className={inputCls}
-                  inputMode="decimal"
-                  value={form.entryPrice}
-                  onChange={(e) => setForm({ ...form, entryPrice: e.target.value })}
-                  placeholder="200.00"
-                />
-              </Field>
-              <Field label="Target $">
-                <input
-                  className={inputCls}
-                  inputMode="decimal"
-                  value={form.targetPrice}
-                  onChange={(e) => setForm({ ...form, targetPrice: e.target.value })}
-                  placeholder="240.00"
-                />
-              </Field>
-              <Field label="Upside">
-                <div
-                  className={`${inputCls} flex items-center pointer-events-none font-num ${
-                    upside >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
+
+            <ol className="space-y-4">
+              {visible.map((a) => (
+                <li
+                  key={a.id}
+                  className={`border hairline ${
+                    a.pinned ? "bg-[var(--color-bone)]/50 border-[var(--color-cardinal)]" : "bg-[var(--color-paper)]"
                   }`}
                 >
-                  {upside ? `${upside >= 0 ? "+" : ""}${upside.toFixed(2)}%` : "—"}
-                </div>
-              </Field>
-            </div>
-            <Field label="Thesis" required>
-              <textarea
-                className={`${inputCls} min-h-[96px]`}
-                value={form.thesis}
-                onChange={(e) => setForm({ ...form, thesis: e.target.value })}
-                placeholder="Why now? What's the setup? Key evidence."
-                required
-              />
-            </Field>
-            <Field label="Catalysts">
-              <textarea
-                className={`${inputCls} min-h-[72px]`}
-                value={form.catalysts}
-                onChange={(e) => setForm({ ...form, catalysts: e.target.value })}
-                placeholder="Events / dates that unlock the thesis"
-              />
-            </Field>
-            <Field label="Risks">
-              <textarea
-                className={`${inputCls} min-h-[72px]`}
-                value={form.risks}
-                onChange={(e) => setForm({ ...form, risks: e.target.value })}
-                placeholder="What could break this?"
-              />
-            </Field>
-
-            <div className="flex flex-wrap gap-3 pt-2">
-              <button
-                type="submit"
-                className="bg-[var(--color-cardinal)] text-[var(--color-paper)] px-5 py-3 text-xs uppercase font-mono hover:bg-[var(--color-cardinal-deep)]"
-              >
-                Save draft
-              </button>
-              {lastSaved && (
-                <a
-                  href={buildMailto(lastSaved)}
-                  onClick={() => emailAndMark(lastSaved.id)}
-                  className="inline-flex items-center gap-2 border border-[var(--color-ink)] px-5 py-3 text-xs uppercase font-mono hover:bg-[var(--color-bone)]"
-                >
-                  Email to CIO ↗
-                </a>
-              )}
-            </div>
-            {lastSaved && (
-              <div className="text-[11px] font-mono text-[var(--color-positive)] uppercase">
-                Draft saved — {new Date(lastSaved.createdAt).toLocaleTimeString()}
-              </div>
-            )}
-          </form>
-        </Card>
-      </div>
-
-      <div className="col-span-12 lg:col-span-5">
-        <Card
-          title="Your pitches"
-          action={
-            pitches.length > 0 ? (
-              <button onClick={clearAll} className="text-[11px] font-mono uppercase text-[var(--color-muted)] hover:text-[var(--color-cardinal)]">
-                Clear all
-              </button>
-            ) : null
-          }
-        >
-          {pitches.length === 0 ? (
-            <div className="text-sm text-[var(--color-muted)]">
-              Your drafts and submissions show up here. Stored locally on this device.
-            </div>
-          ) : (
-            <ul className="divide-y hairline -m-1">
-              {pitches.map((p) => (
-                <li key={p.id} className="py-3 grid grid-cols-12 gap-2">
-                  <div className="col-span-2 font-num font-medium">{p.ticker}</div>
-                  <div className="col-span-7">
-                    <div className="text-sm">{p.company}</div>
-                    <div className="text-[11px] text-[var(--color-muted)] font-mono uppercase">
-                      {p.rec} · {p.upside >= 0 ? "+" : ""}
-                      {p.upside.toFixed(1)}% · {new Date(p.createdAt).toLocaleDateString()}
+                  {a.pinned && (
+                    <div className="h-[3px] w-full bg-[var(--color-cardinal)]" />
+                  )}
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="tag">{a.tag || "GENERAL"}</span>
+                        {a.pinned && (
+                          <span className="text-[10px] font-mono uppercase bg-[var(--color-cardinal)] text-[var(--color-paper)] px-2 py-0.5">
+                            Pinned
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-mono uppercase text-[var(--color-muted)]">
+                        {new Date(a.created_at).toLocaleString(undefined, {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </span>
                     </div>
-                  </div>
-                  <div className="col-span-3 flex items-start justify-end gap-2">
-                    <span
-                      className={`text-[10px] font-mono uppercase px-2 py-0.5 ${
-                        p.status === "SUBMITTED"
-                          ? "bg-[var(--color-positive)] text-white"
-                          : "border hairline text-[var(--color-muted)]"
-                      }`}
-                    >
-                      {p.status}
-                    </span>
-                    <a
-                      href={buildMailto(p)}
-                      onClick={() => emailAndMark(p.id)}
-                      className="text-[10px] font-mono uppercase text-[var(--color-cardinal)] border-b border-[var(--color-cardinal)] pb-0.5"
-                    >
-                      Send
-                    </a>
-                    <button
-                      onClick={() => {
-                        removePitch(p.id);
-                        setPitches(loadPitches());
-                      }}
-                      className="text-[10px] font-mono uppercase text-[var(--color-muted)] hover:text-[var(--color-cardinal)]"
-                    >
-                      ×
-                    </button>
+                    <h3 className="mt-3 font-[family-name:var(--font-display)] text-xl md:text-2xl leading-tight">
+                      {a.title}
+                    </h3>
+                    <p className="mt-3 text-[15px] leading-relaxed whitespace-pre-wrap text-[var(--color-ink)]/85">
+                      {a.body}
+                    </p>
                   </div>
                 </li>
               ))}
-            </ul>
-          )}
-          <div className="mt-6 text-[10px] font-mono uppercase text-[var(--color-muted)]">
-            Storage · local device only
-          </div>
-        </Card>
-      </div>
+            </ol>
+          </>
+        )}
+      </Card>
     </div>
   );
 }
+
+type LiveAnn = {
+  id: string;
+  title: string;
+  body: string;
+  tag: string | null;
+  pinned: boolean;
+  created_at: string;
+};
+
+function LiveAnnouncements() {
+  const [items, setItems] = useState<LiveAnn[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const sb = getSupabaseBrowser();
+      if (!sb) {
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await sb
+        .from("announcements")
+        .select("id, title, body, tag, pinned, created_at")
+        .order("pinned", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (error) setErr(error.message);
+      else setItems((data as LiveAnn[]) ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  if (loading) {
+    return <div className="text-sm text-[var(--color-muted)] font-mono uppercase">Loading…</div>;
+  }
+  if (err) {
+    const tableMissing = /relation.*does not exist|announcements.*schema cache/i.test(err);
+    return (
+      <div className="text-[12px] border border-[var(--color-negative)] text-[var(--color-negative)] px-3 py-2">
+        {tableMissing
+          ? "Announcements table isn't set up yet — an admin needs to run 09_announcements.sql in Supabase."
+          : err}
+      </div>
+    );
+  }
+  if (items.length === 0) {
+    return (
+      <div className="text-sm text-[var(--color-muted)] leading-relaxed">
+        No announcements yet.
+      </div>
+    );
+  }
+
+  return (
+    <ul className="divide-y hairline">
+      {items.map((a) => {
+        const when = new Date(a.created_at).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        });
+        return (
+          <li key={a.id} className="py-3 grid grid-cols-12 gap-3 items-start">
+            <div className="col-span-12 md:col-span-2 text-xs font-mono uppercase text-[var(--color-muted)]">
+              {when}
+              {a.pinned && (
+                <div className="mt-1 inline-block text-[9px] bg-[var(--color-cardinal)] text-[var(--color-paper)] px-1.5 py-0.5">
+                  PINNED
+                </div>
+              )}
+            </div>
+            <div className="col-span-12 md:col-span-8">
+              <div className="font-[family-name:var(--font-display)] text-lg leading-tight">
+                {a.title}
+              </div>
+              <div className="text-sm text-[var(--color-muted)] mt-1 whitespace-pre-wrap">
+                {a.body}
+              </div>
+            </div>
+            <div className="col-span-12 md:col-span-2 md:text-right">
+              <span className="tag">{a.tag || "GENERAL"}</span>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 
 /* ───────────────────────── Insights tab ───────────────────────── */
 
 function InsightsTab() {
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">
+      <div className="col-span-12">
+        <PlaceholderBanner
+          body="Fund snapshot, market pulse, and pipeline stats below are placeholder values. Connect the portfolio tracker and a market-data provider to flip these live."
+        />
+      </div>
       <Card title="Fund snapshot" span="md:col-span-12">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--color-rule)] border hairline">
           <Metric label="Net Asset Value" value="$127,348" />
@@ -511,24 +476,12 @@ function InsightsTab() {
 }
 
 function YourStats() {
-  const [pitches, setPitches] = useState<PitchRecord[]>([]);
-  useEffect(() => setPitches(loadPitches()), []);
-  const total = pitches.length;
-  const sent = pitches.filter((p) => p.status === "SUBMITTED").length;
-  const avgUpside =
-    pitches.length > 0
-      ? pitches.reduce((a, b) => a + (b.upside || 0), 0) / pitches.length
-      : 0;
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--color-rule)] border hairline">
-      <Metric label="Pitches drafted" value={String(total)} />
-      <Metric label="Submitted" value={String(sent)} />
-      <Metric
-        label="Avg upside"
-        value={`${avgUpside >= 0 ? "+" : ""}${avgUpside.toFixed(1)}%`}
-        tone={avgUpside >= 0 ? "positive" : "negative"}
-      />
-      <Metric label="Streak" value={sent > 0 ? `${sent} 🔥` : "—"} />
+      <Metric label="Pitches" value="—" />
+      <Metric label="Approved" value="—" tone="positive" />
+      <Metric label="Pending" value="—" />
+      <Metric label="Streak" value="—" />
     </div>
   );
 }
@@ -544,18 +497,98 @@ const MARKET = [
 
 /* ───────────────────────── Resources tab ───────────────────────── */
 
+type LibraryDoc = {
+  id: string;
+  storage_path: string;
+  display_name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  created_at: string;
+};
+
 function ResourcesTab() {
+  const [docs, setDocs] = useState<LibraryDoc[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const sb = getSupabaseBrowser();
+      if (!sb) {
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await sb
+        .from("documents")
+        .select("id, storage_path, display_name, mime_type, size_bytes, created_at")
+        .order("created_at", { ascending: false });
+      if (error) setErr(error.message);
+      else setDocs((data as LibraryDoc[]) ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  async function open(d: LibraryDoc) {
+    const sb = getSupabaseBrowser();
+    if (!sb) return;
+    setBusyId(d.id);
+    setErr(null);
+    const { data, error } = await sb.storage
+      .from("fund-docs")
+      .createSignedUrl(d.storage_path, 3600);
+    setBusyId(null);
+    if (error || !data?.signedUrl) {
+      setErr(error?.message || "Could not generate link.");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
+  }
+
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">
-      <Card title="Templates" span="md:col-span-6">
-        <ul className="divide-y hairline">
-          <ResourceRow title="Investment Memo Template" subtitle="One-page pitch format" kind=".docx" href={process.env.NEXT_PUBLIC_MEMO_TEMPLATE_URL || "#"} />
-          <ResourceRow title="Valuation Model Template" subtitle="DCF, multiples, scenario" kind=".xlsx" href={process.env.NEXT_PUBLIC_VALUATION_TEMPLATE_URL || "#"} />
-          <ResourceRow title="Pitch Deck Template" subtitle="Investment Committee format" kind=".pptx" href={process.env.NEXT_PUBLIC_DECK_TEMPLATE_URL || "#"} />
-          <ResourceRow title="Fund Handbook" subtitle="Bylaws + operating manual" kind=".pdf" href={process.env.NEXT_PUBLIC_HANDBOOK_URL || "#"} />
-        </ul>
+      {/* Fund Library — live from uploaded Documents */}
+      <Card title={`Fund library · ${loading ? "…" : docs.length}`} span="md:col-span-12">
+        {loading ? (
+          <div className="text-sm text-[var(--color-muted)]">Loading documents…</div>
+        ) : docs.length === 0 ? (
+          <div className="text-sm text-[var(--color-muted)] leading-relaxed">
+            No documents uploaded yet. Admins can upload from the Admin tab →
+            Documents — they&apos;ll show up here for every signed-in member.
+          </div>
+        ) : (
+          <ul className="divide-y hairline">
+            {docs.map((d) => (
+              <li key={d.id} className="py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-[family-name:var(--font-display)] text-base md:text-lg leading-tight truncate">
+                    {d.display_name}
+                  </div>
+                  <div className="text-[11px] font-mono uppercase text-[var(--color-muted)]">
+                    {friendlyKind(d.display_name, d.mime_type)} ·{" "}
+                    {formatBytes(d.size_bytes)} ·{" "}
+                    {new Date(d.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <button
+                  onClick={() => open(d)}
+                  disabled={busyId === d.id}
+                  className="text-[11px] font-mono uppercase text-[var(--color-cardinal)] border-b border-[var(--color-cardinal)] pb-0.5 disabled:opacity-50 shrink-0"
+                >
+                  {busyId === d.id ? "…" : "Open ↗"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {err && (
+          <div className="mt-3 text-[11px] font-mono uppercase border border-[var(--color-negative)] text-[var(--color-negative)] px-3 py-2">
+            {err}
+          </div>
+        )}
       </Card>
 
+      {/* Shared drives (external links — unchanged) */}
       <Card title="Shared drives" span="md:col-span-6">
         <ul className="divide-y hairline">
           <ResourceRow title="SharePoint — SMIF Documents" subtitle="Primary document library" kind="SharePoint" href={process.env.NEXT_PUBLIC_SHAREPOINT_URL || "#"} />
@@ -564,8 +597,9 @@ function ResourcesTab() {
         </ul>
       </Card>
 
-      <Card title="Learning" span="md:col-span-12">
-        <ul className="grid grid-cols-1 md:grid-cols-3 gap-px bg-[var(--color-rule)] border hairline">
+      {/* Learning (static — curated copy) */}
+      <Card title="Learning" span="md:col-span-6">
+        <ul className="grid grid-cols-1 gap-px bg-[var(--color-rule)] border hairline">
           {LEARNING.map((l) => (
             <li key={l.title} className="bg-[var(--color-paper)] p-5">
               <div className="rule-label">{l.tag}</div>
@@ -577,6 +611,41 @@ function ResourcesTab() {
       </Card>
     </div>
   );
+}
+
+function friendlyKind(name: string, mime: string | null): string {
+  const ext = (name.split(".").pop() || "").toLowerCase();
+  const map: Record<string, string> = {
+    pdf: "PDF",
+    docx: "Word",
+    doc: "Word",
+    xlsx: "Excel",
+    xls: "Excel",
+    pptx: "PowerPoint",
+    ppt: "PowerPoint",
+    png: "Image",
+    jpg: "Image",
+    jpeg: "Image",
+    gif: "Image",
+    webp: "Image",
+    zip: "Archive",
+    csv: "CSV",
+    txt: "Text",
+    md: "Markdown",
+  };
+  return map[ext] || (mime ? mime.split("/")[1]?.toUpperCase() || "File" : "File");
+}
+
+function formatBytes(n: number | null): string {
+  if (!n || n <= 0) return "—";
+  const units = ["B", "KB", "MB", "GB"];
+  let i = 0;
+  let v = n;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
 function ResourceRow({ title, subtitle, kind, href }: { title: string; subtitle: string; kind: string; href: string }) {

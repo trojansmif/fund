@@ -7,6 +7,8 @@ import { Donut } from "@/components/donut";
 import { WorldClocks } from "@/components/world-clocks";
 import { LiveUpdated } from "@/components/live-updated";
 import { ScrollHint } from "@/components/scroll-hint";
+import { PlaceholderBadge, PlaceholderBanner } from "@/components/placeholder-badge";
+import { ReportButton } from "@/components/report-button";
 import { formatPct, formatUSD, POLICY_LIMITS } from "@/lib/portfolio";
 import { loadSnapshot, sharepointUrl } from "@/lib/live-portfolio";
 
@@ -40,8 +42,9 @@ export default async function PortfolioPage() {
               <h1 className="mt-4 font-[family-name:var(--font-display)] text-[clamp(2rem,6vw,3.75rem)] font-medium leading-[1.1]">
                 USC SMIF · Live Book
               </h1>
-              <div className="mt-5">
+              <div className="mt-5 flex flex-wrap items-center gap-3">
                 <LiveUpdated asOf={s.asOf} />
+                <PlaceholderBadge />
               </div>
               <p className="mt-6 text-[var(--color-muted)] max-w-2xl leading-relaxed">
                 Position, performance, and risk review synced from the SMIF
@@ -50,6 +53,7 @@ export default async function PortfolioPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
+              <ReportButton defaultDate={s.asOf} />
               <a
                 href="/api/portfolio"
                 className="inline-flex items-center gap-2 border border-[var(--color-ink)] px-5 py-2 text-xs uppercase hover:bg-[var(--color-bone)]"
@@ -68,6 +72,13 @@ export default async function PortfolioPage() {
           </div>
         </div>
 
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 pb-8">
+          <PlaceholderBanner
+            title="Placeholder figures on this entire page"
+            body="NAV, returns, holdings, sector weights, attribution, and compliance checks below are illustrative values seeded from the Fund's template workbook. Real numbers go live the moment the SMIF Portfolio Tracker .xlsx is connected."
+          />
+        </div>
+
         {/* World clocks */}
         <div className="mx-auto max-w-7xl px-4 sm:px-6 pb-10">
           <div className="rule-label mb-3">Global market clocks</div>
@@ -75,16 +86,18 @@ export default async function PortfolioPage() {
         </div>
 
         {/* Headline KPIs */}
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 pb-12 grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-rule)] border hairline">
-          <LightKPI k="Net Asset Value" v={formatUSD(s.nav)} />
-          <LightKPI
-            k="Since Inception"
-            v={formatPct(s.sinceInception)}
-            sub={`vs SPY ${formatPct(excess)}`}
-            tone="positive"
-          />
-          <LightKPI k="Sharpe Ratio" v={s.sharpe.toFixed(2)} sub={`Sortino ${s.sortino.toFixed(2)}`} />
-          <LightKPI k="Max Drawdown" v={formatPct(s.maxDrawdown)} tone="negative" />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 pb-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-rule)] border hairline">
+            <LightKPI k="Net Asset Value" v={formatUSD(s.nav)} />
+            <LightKPI
+              k="Since Inception"
+              v={formatPct(s.sinceInception)}
+              sub={`vs SPY ${formatPct(excess)}`}
+              tone="positive"
+            />
+            <LightKPI k="Sharpe Ratio" v={s.sharpe.toFixed(2)} sub={`Sortino ${s.sortino.toFixed(2)}`} />
+            <LightKPI k="Max Drawdown" v={formatPct(s.maxDrawdown)} tone="negative" />
+          </div>
         </div>
       </section>
 

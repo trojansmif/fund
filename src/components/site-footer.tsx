@@ -1,7 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Wordmark } from "./wordmark";
 
 export function SiteFooter() {
+  const pathname = usePathname();
+  // Public profile page and portfolio report render their own footers.
+  if (pathname?.startsWith("/m/")) return null;
+  if (pathname?.startsWith("/portfolio/report")) return null;
   return (
     <footer className="mt-16 md:mt-24 border-t hairline bg-[var(--color-bone)]">
       <div className="h-[3px] w-full bg-[var(--color-cardinal)]" />

@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { AdminMode } from "@/components/admin-mode";
-import { StudentHotkey } from "@/components/student-hotkey";
 
 export const metadata: Metadata = {
   title: {
@@ -11,7 +9,7 @@ export const metadata: Metadata = {
     template: "%s · Trojan SMIF",
   },
   description:
-    "The Trojan Student Managed Investment Fund is an MSF-exclusive investment organization at USC Marshall School of Business — managing a $100,000 paper portfolio across US and international equities, fixed income, and alternatives.",
+    "The Trojan Student Managed Investment Fund is an MSF-exclusive investment organization at USC Marshall School of Business — managing a $1,000,000 paper portfolio across US and international equities, fixed income, and alternatives.",
   metadataBase: new URL("https://trojansmif.vercel.app"),
   openGraph: {
     title: "Trojan SMIF — USC Marshall Student Managed Investment Fund",
@@ -40,8 +38,6 @@ export default function RootLayout({
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />
-        <AdminMode />
-        <StudentHotkey />
       </body>
     </html>
   );

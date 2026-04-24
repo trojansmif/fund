@@ -13,6 +13,20 @@ export type MemberProfile = {
   role: string;
   linkedin_url: string | null;
   is_admin: boolean;
+  avatar_path: string | null;
+  bio: string | null;
+  pronouns: string | null;
+  grad_year: string | null;
+  resume_path: string | null;
+  undergrad_school: string | null;
+  prior_firm: string | null;
+  post_grad_target: string | null;
+  cfa_progress: string | null;
+  sectors: string[] | null;
+  theme_color: string | null;
+  theme_font: string | null;
+  skills: string[] | null;
+  certifications: string[] | null;
 };
 
 export type SessionState = {
@@ -37,10 +51,14 @@ export function useSupabaseSession(): SessionState {
     }
     const { data, error } = await supabase
       .from("members")
-      .select("id, auth_user_id, username, full_name, team, role, linkedin_url, is_admin")
+      .select("id, auth_user_id, username, full_name, team, role, linkedin_url, is_admin, avatar_path, bio, pronouns, grad_year, resume_path, undergrad_school, prior_firm, post_grad_target, cfa_progress, sectors, theme_color, theme_font, skills, certifications")
       .eq("auth_user_id", user.id)
       .maybeSingle();
     if (error) {
+      // Surface the exact reason loudly so a missing migration doesn't
+      // masquerade as a "no roster row" error — the profile tab renders
+      // based on `profile === null`, which makes column-doesn't-exist
+      // failures look like roster mismatches.
       console.warn("[supabase] profile load failed:", error.message);
       setProfile(null);
       return;
@@ -68,9 +86,19 @@ export function useSupabaseSession(): SessionState {
       loadProfile(newSession?.user ?? null);
     });
 
+    // Cross-component profile refresh: when any part of the app updates the
+    // member row (avatar, bio, etc.) it dispatches `profile-updated`, and
+    // every useSupabaseSession consumer re-pulls from the DB. Keeps the
+    // header avatar, profile tab, and /m/ preview in sync without reload.
+    const onProfileUpdate = () => {
+      loadProfile(session?.user ?? null);
+    };
+    window.addEventListener("profile-updated", onProfileUpdate);
+
     return () => {
       active = false;
       sub.subscription.unsubscribe();
+      window.removeEventListener("profile-updated", onProfileUpdate);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

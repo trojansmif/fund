@@ -122,7 +122,8 @@ export function PerfChart({
               vectorEffect="non-scaling-stroke"
             />
 
-            {/* Hover crosshair + points */}
+            {/* Hover crosshair — vertical line is fine stretched, only the
+                horizontal position matters for a 1px vertical */}
             {active && (
               <g pointerEvents="none">
                 <line
@@ -135,27 +136,41 @@ export function PerfChart({
                   strokeDasharray="2 3"
                   vectorEffect="non-scaling-stroke"
                 />
-                <circle
-                  cx={activeX}
-                  cy={yFor(active.benchmark)}
-                  r={6}
-                  fill="var(--color-paper)"
-                  stroke="var(--color-ink-3)"
-                  strokeWidth={1.5}
-                  vectorEffect="non-scaling-stroke"
-                />
-                <circle
-                  cx={activeX}
-                  cy={yFor(active.nav)}
-                  r={7}
-                  fill="var(--color-cardinal)"
-                  stroke="var(--color-paper)"
-                  strokeWidth={2}
-                  vectorEffect="non-scaling-stroke"
-                />
               </g>
             )}
           </svg>
+
+          {/* Hover markers — rendered as HTML so they stay circular at any
+              container aspect ratio (the SVG uses preserveAspectRatio="none"
+              which would otherwise squish SVG circles into ellipses).
+              Both markers use identical dimensions (14px core + 2px border)
+              so they read as a matched pair, distinguished only by color. */}
+          {active && (
+            <>
+              <span
+                aria-hidden
+                className="pointer-events-none absolute rounded-full bg-[var(--color-paper)] border-2 border-[var(--color-ink)]"
+                style={{
+                  width: 14,
+                  height: 14,
+                  boxSizing: "border-box",
+                  left: `calc(${(activeX / W) * 100}% - 7px)`,
+                  top: `calc(${(yFor(active.benchmark) / H) * 100}% - 7px)`,
+                }}
+              />
+              <span
+                aria-hidden
+                className="pointer-events-none absolute rounded-full bg-[var(--color-cardinal)] border-2 border-[var(--color-ink)]"
+                style={{
+                  width: 14,
+                  height: 14,
+                  boxSizing: "border-box",
+                  left: `calc(${(activeX / W) * 100}% - 7px)`,
+                  top: `calc(${(yFor(active.nav) / H) * 100}% - 7px)`,
+                }}
+              />
+            </>
+          )}
 
           {/* Tooltip */}
           {active && (

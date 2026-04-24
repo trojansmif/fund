@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { SectionLabel } from "@/components/section-label";
+import { ScrollHint } from "@/components/scroll-hint";
+import { PlaceholderBadge } from "@/components/placeholder-badge";
+import { ResearchRepository } from "@/components/research-repository";
 
 export const metadata = { title: "Research" };
 
@@ -44,9 +47,17 @@ export default function ResearchPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 sm:px-6 py-12 md:py-16">
-        <SectionLabel eyebrow="Pipeline" title="Current pitch tracker" />
-        <div className="mt-8 border hairline overflow-x-auto">
-          <table className="min-w-full text-sm">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <SectionLabel eyebrow="Pipeline" title="Current pitch tracker" />
+          <div className="pt-1 shrink-0">
+            <PlaceholderBadge />
+          </div>
+        </div>
+        <div className="mt-8">
+          <ScrollHint />
+        </div>
+        <div className="border hairline overflow-x-auto">
+          <table className="min-w-[680px] md:min-w-full text-sm">
             <thead className="bg-[var(--color-bone)]">
               <tr className="text-left">
                 <Th>Ticker</Th>
@@ -78,6 +89,19 @@ export default function ResearchPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="border-t hairline">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 md:py-16">
+          <SectionLabel
+            eyebrow="Repository"
+            title="Member-submitted pitches"
+            subtitle="Shared by analysts from the Fund Dashboard — includes the memo attachment."
+          />
+          <div className="mt-8">
+            <ResearchRepository />
+          </div>
         </div>
       </section>
 
@@ -113,38 +137,9 @@ export default function ResearchPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 py-14 md:py-20">
-        <SectionLabel eyebrow="Process" title="8-step investment process." />
-        <ol className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--color-rule)] border hairline">
-          {process.map((p, i) => (
-            <li key={p.title} className="bg-[var(--color-paper)] p-6">
-              <div className="flex items-start gap-5">
-                <div className="font-num text-3xl text-[var(--color-cardinal)] shrink-0 w-12">
-                  {String(i + 1).padStart(2, "0")}
-                </div>
-                <div>
-                  <h3 className="font-[family-name:var(--font-display)] text-xl">{p.title}</h3>
-                  <p className="mt-1.5 text-sm text-[var(--color-muted)] leading-relaxed">{p.v}</p>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
     </>
   );
 }
-
-const process = [
-  { title: "Idea generation", v: "Analysts and leads source ideas from screens, sell-side, and thematic research." },
-  { title: "Preliminary memo", v: "One-page thesis, risks, and approximate sizing drafted for team review." },
-  { title: "Valuation & modeling", v: "DCF, multiples, and scenario analysis — full model attached to memo." },
-  { title: "Director review", v: "Team Director reviews, challenges assumptions, and signs off for IC." },
-  { title: "Pitch to Investment Committee", v: "Formal presentation with Q&A from EC and Directors." },
-  { title: "Risk check", v: "CRO validates against Fund limits; veto if breached." },
-  { title: "Execution", v: "Paper-traded at next session; ledger entry logged; cash balance updated." },
-  { title: "Monitoring", v: "Position tracked vs thesis, stop-loss, and sector limits; monthly review cadence." },
-];
 
 function Th({ children, align = "left" }: { children: React.ReactNode; align?: "left" | "right" }) {
   return (
