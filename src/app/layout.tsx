@@ -16,6 +16,18 @@ export const metadata: Metadata = {
     description:
       "An MSF-led investment fund at USC Marshall managing a long-only, multi-asset portfolio benchmarked to the S&P 500.",
     type: "website",
+    images: [{ url: "/usc-seal.png", width: 600, height: 600, alt: "Trojan SMIF" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Trojan SMIF — USC Marshall Student Managed Investment Fund",
+    description:
+      "An MSF-led investment fund at USC Marshall managing a long-only, multi-asset portfolio benchmarked to the S&P 500.",
+    images: ["/usc-seal.png"],
+  },
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
   },
 };
 
