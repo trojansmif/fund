@@ -1007,7 +1007,9 @@ function ShareProfile({
           const u = `${base.replace(/\/+$/, "")}/storage/v1/object/public/avatars/${profile.avatar_path}`;
           try {
             const res = await fetch(u);
+            if (!res.ok) throw new Error(`Avatar fetch failed: ${res.status}`);
             const blob = await res.blob();
+            if (!blob.type.startsWith("image/")) throw new Error(`Unexpected MIME: ${blob.type}`);
             setAvatarDataUrl(await blobToDataUrl(blob));
           } catch {
             setAvatarDataUrl(null);

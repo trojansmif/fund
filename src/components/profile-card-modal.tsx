@@ -51,19 +51,83 @@ export function ProfileCardModal({
     setBusy(true);
     setMsg(null);
     try {
-      const { toPng } = await import("html-to-image");
-      // Capture the dedicated un-scaled clone (not the visible scaled
-      // preview). Wait a frame to make sure fonts/images settled.
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const { toCanvas } = await import("html-to-image");
       const target = captureRef.current.firstElementChild as HTMLElement | null;
       if (!target) throw new Error("Card element not found");
-      const dataUrl = await toPng(target, {
-        pixelRatio: 2,
-        cacheBust: true,
+
+      // Force every <img> (avatar + QR are data URLs) to fully decode
+      // before snapshotting. cacheBust must stay OFF — it appends ?t=… to
+      // src, which corrupts data: URLs and leaves them unrenderable in
+      // the cloned DOM the rasterizer walks.
+      const imgs = Array.from(target.querySelectorAll("img"));
+      await Promise.all(
+        imgs.map((img) => {
+          if (img.complete && img.naturalWidth > 0) return img.decode().catch(() => undefined);
+          return new Promise<void>((res) => {
+            img.addEventListener("load", () => res(), { once: true });
+            img.addEventListener("error", () => res(), { once: true });
+          }).then(() => img.decode().catch(() => undefined));
+        }),
+      );
+      if ("fonts" in document) {
+        try { await (document as Document & { fonts: { ready: Promise<unknown> } }).fonts.ready; } catch { /* ignore */ }
+      }
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+
+      const scale = 2;
+      const canvas = await toCanvas(target, {
+        pixelRatio: scale,
         width: 1080,
         height: 1400,
         backgroundColor: "#ffffff",
       });
+
+      // Safety net: html-to-image has a long history of dropping data: URL
+      // bitmaps in cloned <img> tags. Even when it does work, it's flaky
+      // across browser versions. Re-paint the avatar and QR onto the
+      // canvas ourselves at their exact DOM coordinates so the result is
+      // deterministic.
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        const targetRect = target.getBoundingClientRect();
+        const dataUrlImgs = imgs.filter((img) => img.src.startsWith("data:"));
+        for (const img of dataUrlImgs) {
+          const rect = img.getBoundingClientRect();
+          if (rect.width <= 0 || rect.height <= 0) continue;
+          const cs = window.getComputedStyle(img);
+          const bl = parseFloat(cs.borderLeftWidth) || 0;
+          const bt = parseFloat(cs.borderTopWidth) || 0;
+          const br = parseFloat(cs.borderRightWidth) || 0;
+          const bb = parseFloat(cs.borderBottomWidth) || 0;
+          const pl = parseFloat(cs.paddingLeft) || 0;
+          const pt = parseFloat(cs.paddingTop) || 0;
+          const pr = parseFloat(cs.paddingRight) || 0;
+          const pb = parseFloat(cs.paddingBottom) || 0;
+          const innerX = (rect.left - targetRect.left + bl + pl) * scale;
+          const innerY = (rect.top - targetRect.top + bt + pt) * scale;
+          const innerW = (rect.width - bl - br - pl - pr) * scale;
+          const innerH = (rect.height - bt - bb - pt - pb) * scale;
+
+          const fresh = new Image();
+          fresh.src = img.src;
+          await fresh.decode().catch(() => undefined);
+          if (!fresh.naturalWidth) continue;
+
+          const isCircular = cs.borderRadius.includes("50%")
+            || parseFloat(cs.borderRadius) >= Math.min(rect.width, rect.height) / 2 - 0.5;
+
+          ctx.save();
+          if (isCircular) {
+            ctx.beginPath();
+            ctx.arc(innerX + innerW / 2, innerY + innerH / 2, Math.min(innerW, innerH) / 2, 0, Math.PI * 2);
+            ctx.clip();
+          }
+          ctx.drawImage(fresh, innerX, innerY, innerW, innerH);
+          ctx.restore();
+        }
+      }
+
+      const dataUrl = canvas.toDataURL("image/png");
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = `trojan-smif-${data.username}.png`;
