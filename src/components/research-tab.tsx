@@ -1,113 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import {
+  readAIKey,
+  useAIConnectionState,
+  type AIProvider,
+} from "@/components/ai-connection-card";
 
-type Provider = "anthropic" | "openai";
-
-const KEY_STORAGE = "smif.ai.key";
-const PROVIDER_STORAGE = "smif.ai.provider";
-const MODEL_STORAGE = "smif.ai.model";
-
-// Two AI generators that use the member's own API key. The key is read from
-// localStorage, sent once per request to our server route, and never stored
-// server-side. PPTX is built with pptxgenjs, XLSX with exceljs.
+// Two AI generators that use the member's own API key. Provider/model are
+// configured under Profile → AI connection. The key is read from
+// localStorage at request time, sent once per request to our server route,
+// and never stored server-side. PPTX is built with pptxgenjs, XLSX with
+// exceljs.
 export function ResearchTab() {
-  const [provider, setProvider] = useState<Provider>("anthropic");
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("");
-  const [keySaved, setKeySaved] = useState(false);
-
-  useEffect(() => {
-    const p = (localStorage.getItem(PROVIDER_STORAGE) as Provider | null) || "anthropic";
-    const k = localStorage.getItem(KEY_STORAGE) || "";
-    const m = localStorage.getItem(MODEL_STORAGE) || "";
-    setProvider(p);
-    setApiKey(k);
-    setModel(m);
-    setKeySaved(!!k);
-  }, []);
-
-  function saveKey() {
-    localStorage.setItem(PROVIDER_STORAGE, provider);
-    localStorage.setItem(KEY_STORAGE, apiKey.trim());
-    if (model.trim()) localStorage.setItem(MODEL_STORAGE, model.trim());
-    else localStorage.removeItem(MODEL_STORAGE);
-    setKeySaved(!!apiKey.trim());
-  }
-
-  function clearKey() {
-    localStorage.removeItem(KEY_STORAGE);
-    localStorage.removeItem(MODEL_STORAGE);
-    setApiKey("");
-    setModel("");
-    setKeySaved(false);
-  }
+  const { provider, model, keySaved } = useAIConnectionState();
 
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">
-      <Card title="AI connection" span="md:col-span-12">
-        <p className="text-sm text-[var(--color-muted)] leading-relaxed">
-          Bring your own Anthropic or OpenAI API key. Keys live in this browser
-          only — they're sent with each request to generate a deck or
-          spreadsheet, but never stored on the Fund's server.
-        </p>
-        <div className="mt-5 grid grid-cols-12 gap-3">
-          <label className="col-span-12 sm:col-span-3">
-            <span className="rule-label mb-1.5 inline-block">Provider</span>
-            <select
-              value={provider}
-              onChange={(e) => setProvider(e.target.value as Provider)}
-              className="w-full border hairline bg-[var(--color-paper)] px-3 py-2 font-mono text-sm outline-none focus:border-[var(--color-cardinal)]"
+      {!keySaved && (
+        <Card title="Research generators" span="md:col-span-12">
+          <p className="text-sm text-[var(--color-muted)] leading-relaxed">
+            Generate AI-drafted pitch decks and valuation workbooks straight
+            from a ticker and a short brief. To use them, connect your
+            Anthropic or OpenAI API key under{" "}
+            <a
+              href="/dashboard?tab=profile"
+              className="text-[var(--color-cardinal)] border-b border-[var(--color-cardinal)] pb-0.5 font-mono uppercase text-[12px]"
             >
-              <option value="anthropic">Anthropic (Claude)</option>
-              <option value="openai">OpenAI (GPT)</option>
-            </select>
-          </label>
-          <label className="col-span-12 sm:col-span-6">
-            <span className="rule-label mb-1.5 inline-block">API key</span>
-            <input
-              type="password"
-              autoComplete="off"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder={provider === "anthropic" ? "sk-ant-..." : "sk-..."}
-              className="w-full border hairline bg-[var(--color-paper)] px-3 py-2 font-mono text-sm outline-none focus:border-[var(--color-cardinal)]"
-            />
-          </label>
-          <label className="col-span-12 sm:col-span-3">
-            <span className="rule-label mb-1.5 inline-block">Model (optional)</span>
-            <input
-              type="text"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              placeholder={provider === "anthropic" ? "claude-sonnet-4-6" : "gpt-4o-mini"}
-              className="w-full border hairline bg-[var(--color-paper)] px-3 py-2 font-mono text-sm outline-none focus:border-[var(--color-cardinal)]"
-            />
-          </label>
-        </div>
-        <div className="mt-4 flex items-center gap-3">
-          <button
-            onClick={saveKey}
-            disabled={!apiKey.trim()}
-            className="bg-[var(--color-cardinal)] text-[var(--color-paper)] px-4 py-2 text-xs uppercase font-mono hover:bg-[var(--color-cardinal-deep)] disabled:opacity-40"
-          >
-            Save key
-          </button>
-          {keySaved && (
-            <button
-              onClick={clearKey}
-              className="text-xs font-mono uppercase text-[var(--color-muted)] border-b hairline pb-0.5 hover:text-[var(--color-cardinal)]"
-            >
-              Forget key
-            </button>
-          )}
-          {keySaved && (
-            <span className="text-[10px] font-mono uppercase text-[var(--color-positive)]">
-              ● Connected
-            </span>
-          )}
-        </div>
-      </Card>
+              Profile → AI connection
+            </a>
+            . Keys stay in your browser only.
+          </p>
+        </Card>
+      )}
 
       <Generator
         kind="deck"
@@ -117,7 +42,6 @@ export function ResearchTab() {
         endpoint="/api/ai/generate-deck"
         downloadSuffix="_pitch_deck.pptx"
         provider={provider}
-        apiKey={apiKey}
         model={model}
         keySaved={keySaved}
       />
@@ -130,7 +54,6 @@ export function ResearchTab() {
         endpoint="/api/ai/generate-model"
         downloadSuffix="_valuation.xlsx"
         provider={provider}
-        apiKey={apiKey}
         model={model}
         keySaved={keySaved}
       />
@@ -146,7 +69,6 @@ function Generator({
   endpoint,
   downloadSuffix,
   provider,
-  apiKey,
   model,
   keySaved,
 }: {
@@ -156,8 +78,7 @@ function Generator({
   ctaLabel: string;
   endpoint: string;
   downloadSuffix: string;
-  provider: Provider;
-  apiKey: string;
+  provider: AIProvider;
   model: string;
   keySaved: boolean;
 }) {
@@ -168,8 +89,9 @@ function Generator({
 
   async function generate() {
     setErr(null);
-    if (!keySaved) {
-      setErr("Save an API key in the AI connection card first.");
+    const apiKey = readAIKey();
+    if (!apiKey) {
+      setErr("Connect your AI API key under Profile → AI connection first.");
       return;
     }
     const t = ticker.trim().toUpperCase();
@@ -221,7 +143,8 @@ function Generator({
             value={ticker}
             onChange={(e) => setTicker(e.target.value)}
             placeholder="AAPL"
-            className="w-full border hairline bg-[var(--color-paper)] px-3 py-2 font-mono text-sm outline-none focus:border-[var(--color-cardinal)]"
+            disabled={!keySaved}
+            className="w-full border hairline bg-[var(--color-paper)] px-3 py-2 font-mono text-sm outline-none focus:border-[var(--color-cardinal)] disabled:opacity-50"
           />
         </label>
         <label className="block">
@@ -232,12 +155,13 @@ function Generator({
             value={brief}
             onChange={(e) => setBrief(e.target.value)}
             rows={4}
+            disabled={!keySaved}
             placeholder={
               kind === "deck"
                 ? "e.g. Long-cycle infrastructure spend + dealer inventory normalization; rerate as backlog converts."
                 : "e.g. Mid-cycle assumptions, mid-teens EBIT margin, 9% WACC, 2.5% terminal."
             }
-            className="w-full border hairline bg-[var(--color-paper)] px-3 py-2 font-mono text-sm outline-none focus:border-[var(--color-cardinal)] resize-y"
+            className="w-full border hairline bg-[var(--color-paper)] px-3 py-2 font-mono text-sm outline-none focus:border-[var(--color-cardinal)] resize-y disabled:opacity-50"
           />
         </label>
       </div>
@@ -250,9 +174,12 @@ function Generator({
           {busy ? "Generating…" : ctaLabel}
         </button>
         {!keySaved && (
-          <span className="text-[10px] font-mono uppercase text-[var(--color-muted)]">
-            Connect AI key first
-          </span>
+          <a
+            href="/dashboard?tab=profile"
+            className="text-[10px] font-mono uppercase text-[var(--color-cardinal)] border-b border-[var(--color-cardinal)] pb-0.5"
+          >
+            Connect AI key →
+          </a>
         )}
       </div>
       {err && (

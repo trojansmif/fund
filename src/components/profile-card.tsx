@@ -97,13 +97,18 @@ export const ProfileCard = forwardRef<HTMLDivElement, {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/usc-seal.png"
-            alt="USC"
-            width={72}
-            height={72}
-            style={{ width: 72, height: 72, filter: isLight ? "none" : "brightness(0) invert(1)" }}
+          <div
+            role="img"
+            aria-label="USC"
+            style={{
+              width: 72,
+              height: 72,
+              backgroundImage: `url("/usc-seal.png")`,
+              backgroundSize: "contain",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "center",
+              filter: isLight ? "none" : "brightness(0) invert(1)",
+            }}
           />
           <div style={{ lineHeight: 1.1 }}>
             <div style={{ fontSize: 26, fontFamily: '"JetBrains Mono", monospace', letterSpacing: 3.5, textTransform: "uppercase", fontWeight: 700 }}>
@@ -135,17 +140,22 @@ export const ProfileCard = forwardRef<HTMLDivElement, {
         <section style={{ display: "flex", alignItems: "center", gap: 36 }}>
           <div style={{ flexShrink: 0, position: "relative" }}>
             {avatarDataUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarDataUrl}
-                alt={data.full_name}
-                width={200}
-                height={200}
+              // Rendered as a background-image div (not <img>) because
+              // html-to-image's foreignObject clone is flaky with <img>
+              // bitmaps — swapping to backgroundImage embeds the data URL
+              // into the computed style and serializes reliably.
+              <div
+                role="img"
+                aria-label={data.full_name}
                 style={{
                   width: 200,
                   height: 200,
                   borderRadius: "50%",
-                  objectFit: "cover",
+                  backgroundImage: `url("${avatarDataUrl}")`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  backgroundColor: BONE,
                   display: "block",
                   boxShadow: `0 0 0 4px ${PAPER}, 0 0 0 6px ${accent}`,
                 }}
@@ -374,13 +384,24 @@ export const ProfileCard = forwardRef<HTMLDivElement, {
               </div>
             </div>
             {qrDataUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={qrDataUrl}
-                alt="Scan for profile"
-                width={110}
-                height={110}
-                style={{ width: 110, height: 110, display: "block", border: `2px solid ${accent}`, borderRadius: 8, padding: 4, background: PAPER }}
+              <div
+                role="img"
+                aria-label="Scan for profile"
+                style={{
+                  width: 110,
+                  height: 110,
+                  display: "block",
+                  border: `2px solid ${accent}`,
+                  borderRadius: 8,
+                  padding: 4,
+                  background: PAPER,
+                  backgroundImage: `url("${qrDataUrl}")`,
+                  backgroundOrigin: "content-box",
+                  backgroundClip: "content-box",
+                  backgroundSize: "contain",
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "center",
+                }}
               />
             )}
           </footer>

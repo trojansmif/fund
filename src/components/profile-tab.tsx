@@ -7,6 +7,7 @@ import { useSupabaseSession, type MemberProfile } from "@/lib/supabase/use-sessi
 import { AvatarCropper } from "@/components/avatar-cropper";
 import { THEME_COLORS, THEME_FONTS } from "@/lib/profile-theme";
 import { ProfileCardModal } from "@/components/profile-card-modal";
+import { AIConnectionCard } from "@/components/ai-connection-card";
 
 export function ProfileTab() {
   const { loading, configured, user, profile, refreshProfile } = useSupabaseSession();
@@ -899,6 +900,9 @@ export function ProfileTab() {
           )}
         </form>
       </Card>
+
+      {/* AI connection — used by the Research tab generators */}
+      <AIConnectionCard />
 
       {/* Share profile — last, since it's an outbound action */}
       <Card span="md:col-span-12" title="Share your profile">
