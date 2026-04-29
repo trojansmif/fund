@@ -6,12 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ProfileTab } from "@/components/profile-tab";
 import { AdminTab } from "@/components/admin-tab";
 import { PitchTab as PitchTabV2 } from "@/components/pitch-tab";
+import { ResearchTab } from "@/components/research-tab";
 import { useSupabaseSession } from "@/lib/supabase/use-session";
 import { PlaceholderBadge, PlaceholderBanner } from "@/components/placeholder-badge";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { UpcomingMeetings } from "@/components/upcoming-meetings";
 
-type Tab = "home" | "messages" | "pitch" | "insights" | "resources" | "profile" | "admin";
+type Tab = "home" | "messages" | "pitch" | "insights" | "research" | "resources" | "profile" | "admin";
 
 export default function DashboardPage() {
   return (
@@ -31,7 +32,7 @@ function DashboardContent() {
   // Honor ?tab= on load; only allow "admin" if the user is actually admin
   useEffect(() => {
     const requested = params.get("tab");
-    const validTabs: Tab[] = ["home", "messages", "pitch", "insights", "resources", "profile", "admin"];
+    const validTabs: Tab[] = ["home", "messages", "pitch", "insights", "research", "resources", "profile", "admin"];
     if (requested && (validTabs as string[]).includes(requested)) {
       if (requested === "admin" && !isAdmin) return; // silently fall through
       setTab(requested as Tab);
@@ -51,6 +52,7 @@ function DashboardContent() {
         {tab === "messages" && <MessagesTab />}
         {tab === "pitch" && <PitchTabV2 />}
         {tab === "insights" && <InsightsTab />}
+        {tab === "research" && <ResearchTab />}
         {tab === "resources" && <ResourcesTab />}
         {tab === "profile" && <ProfileTab />}
         {tab === "admin" && <AdminTab />}
@@ -77,6 +79,7 @@ function Header({
     { k: "messages", label: "Messages" },
     { k: "pitch", label: "Submit Pitch" },
     { k: "insights", label: "Insights" },
+    { k: "research", label: "Research" },
     { k: "resources", label: "Resources" },
     { k: "profile", label: "Profile" },
     ...(isAdmin ? [{ k: "admin" as Tab, label: "Admin" }] : []),
