@@ -52,14 +52,29 @@ export function ProfileCardModal({
     setMsg(null);
     try {
       const { toPng } = await import("html-to-image");
-      // Capture the dedicated un-scaled clone (not the visible scaled
-      // preview). Wait a frame to make sure fonts/images settled.
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
       const target = captureRef.current.firstElementChild as HTMLElement | null;
       if (!target) throw new Error("Card element not found");
+      // Force every <img> (avatar + QR are data URLs) to fully decode
+      // before snapshotting. Without this html-to-image can serialize the
+      // DOM while bitmaps are still pending, producing empty image slots.
+      // Also: cacheBust must stay OFF — it appends ?t=… to src, which
+      // corrupts data: URLs and leaves them unrenderable in the clone.
+      const imgs = Array.from(target.querySelectorAll("img"));
+      await Promise.all(
+        imgs.map((img) => {
+          if (img.complete && img.naturalWidth > 0) return img.decode().catch(() => undefined);
+          return new Promise<void>((res) => {
+            img.addEventListener("load", () => res(), { once: true });
+            img.addEventListener("error", () => res(), { once: true });
+          }).then(() => img.decode().catch(() => undefined));
+        }),
+      );
+      if ("fonts" in document) {
+        try { await (document as Document & { fonts: { ready: Promise<unknown> } }).fonts.ready; } catch { /* ignore */ }
+      }
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
       const dataUrl = await toPng(target, {
         pixelRatio: 2,
-        cacheBust: true,
         width: 1080,
         height: 1400,
         backgroundColor: "#ffffff",
