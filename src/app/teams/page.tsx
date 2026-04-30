@@ -129,6 +129,15 @@ const TEAMS: Team[] = [
       m.team === "Executive Committee" &&
       (m.role.includes("Operating") || m.role.includes("Technology")),
   },
+  {
+    k: "08",
+    name: "Analysts",
+    lead: "Cross-team analyst pool",
+    blurb: "First-year MSF analysts rotating across research teams.",
+    detail:
+      "The Fund's analyst bench. Analysts rotate across Equities, Fixed Income, and Alternative Investments based on Director need and member interest, building cross-asset coverage before specializing as second-years.",
+    match: (m) => m.team === "Analysts",
+  },
 ];
 
 export default function TeamsPage() {

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { findByName, initials, type RosterEntry } from "@/lib/roster";
 import { LinkedInChip } from "@/components/linkedin-icon";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { nameKeys } from "@/lib/member-name-keys";
 
 type MemberMeta = { avatar: string | null; username: string };
 
@@ -20,13 +21,24 @@ async function fetchMemberMetaMap(): Promise<Map<string, MemberMeta>> {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, "");
   const map = new Map<string, MemberMeta>();
   (data || []).forEach((r: { full_name: string; username: string; avatar_path: string | null }) => {
-    map.set(r.full_name, {
+    const meta: MemberMeta = {
       avatar: r.avatar_path && base ? `${base}/storage/v1/object/public/avatars/${r.avatar_path}` : null,
       username: r.username,
-    });
+    };
+    for (const k of nameKeys(r.full_name)) {
+      if (!map.has(k)) map.set(k, meta);
+    }
   });
   _memberCache = map;
   return map;
+}
+
+function lookupMeta(map: Map<string, MemberMeta>, name: string): MemberMeta | undefined {
+  for (const k of nameKeys(name)) {
+    const hit = map.get(k);
+    if (hit) return hit;
+  }
+  return undefined;
 }
 
 export function TeamAccordion({
@@ -114,7 +126,7 @@ export function TeamAccordion({
               {sectorLineup ? (
                 <ul className="divide-y hairline border hairline bg-[var(--color-paper)]">
                   {sectorLineup.map((s, i) => {
-                    const meta = memberMeta.get(s.name);
+                    const meta = lookupMeta(memberMeta, s.name);
                     return (
                       <li key={`${s.label}-${i}`} className="px-3 md:px-4 py-3 grid grid-cols-12 gap-3 items-center">
                         <div className="col-span-5 sm:col-span-3">
@@ -157,7 +169,7 @@ export function TeamAccordion({
               ) : (
                 <ul className="divide-y hairline border hairline bg-[var(--color-paper)]">
                   {members.map((m) => {
-                    const meta = memberMeta.get(m.name);
+                    const meta = lookupMeta(memberMeta, m.name);
                     return (
                       <li key={m.name} className="px-3 md:px-4 py-3 flex items-center gap-3">
                         <MemberAvatar name={m.name} avatarUrl={meta?.avatar ?? null} />
